@@ -11,10 +11,14 @@
     "auto-commit": "auto-commit.bat"
   },
   "dependencies": {
+    "@builder.io/react": "^8.2.9",
+    "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
     "react": "^19.1.1",
     "react-bootstrap": "^2.10.10",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

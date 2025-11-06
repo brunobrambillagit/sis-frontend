@@ -23,18 +23,10 @@ export default function Login() {
     login(email, password);
   };
 
-return (
-  <div
-    className="login-container d-flex align-items-center justify-content-center">
-    {/* Contenedor que agrupa el título + el recuadro */}
-    <div className="login-content text-center">
-      {/* Título afuera del recuadro */}
-      <h1 className="titulo-sistema mb-4 text-white">
-        Sistema Integral Sanitario Biometrico
-      </h1>
-      {/* Recuadro del formulario */}
+  return (
+    <div className="login-container d-flex align-items-center justify-content-center">
       <div className="login-card shadow-lg p-4 rounded">
-                <h2 className="text-center mb-4">Login</h2>
+        <h2 className="text-center mb-4">Sistema Integral Sanitario</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-group mb-3">
             <span className="input-group-text">
@@ -70,7 +62,5 @@ return (
         </form>
       </div>
     </div>
-  </div>
-);
-
+  );
 }
