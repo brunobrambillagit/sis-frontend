@@ -1,0 +1,89 @@
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #393939;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-family: "Segoe UI", sans-serif;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  position: sticky; /* fixed para estatico*/
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 70px;
+}
+
+.header-left h3 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+}
+
+.header-center {
+  flex-grow: 1;
+  text-align: center;
+}
+
+.header-center span {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.header-right button {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.25s ease-in-out;
+}
+
+/* Botón menú */
+.btn-menu {
+  background-color: #1f6feb;
+}
+
+.btn-menu:hover {
+  background-color: #1652a2;
+  transform: translateY(-1px);
+}
+
+/* Botón logout */
+.btn-logout {
+  background-color: #c0392b;
+}
+
+.btn-logout:hover {
+  background-color: #922b21;
+  transform: translateY(-1px);
+}
+
+/* Sombra suave al hacer scroll */
+.header-container.scrolled {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+    height: auto;
+    text-align: center;
+    padding: 0.75rem;
+  }
+
+  .header-right {
+    margin-top: 0.5rem;
+  }
+}

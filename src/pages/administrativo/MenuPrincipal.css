@@ -1,0 +1,74 @@
+.menu-container {
+  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+  min-height: calc(100vh - 70px); /* 🔹 resta el header real */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* centra verticalmente */
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.menu-container h2 {
+  margin-bottom: 2rem;
+  color: #0a4275;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.menu-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.menu-box {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.8rem 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border-top: 6px solid transparent;
+}
+
+.menu-box:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+}
+
+.menu-box h3 {
+  margin: 0.5rem 0;
+  color: #0a4275;
+  font-weight: 600;
+}
+
+.menu-box p {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+/* Colores institucionales según módulo */
+.guardia {
+  border-top-color: #0d6efd; /* Azul Bootstrap */
+}
+
+.consultorios {
+  border-top-color: #198754; /* Verde Bootstrap */
+}
+
+.hospitalizacion {
+  border-top-color: #dc3545; /* Rojo Bootstrap */
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .menu-container {
+    padding: 1.5rem 1rem;
+  }
+  .menu-box {
+    padding: 1.2rem;
+  }
+}
