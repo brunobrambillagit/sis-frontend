@@ -27,6 +27,26 @@ const HospitalizacionAdmin = () => (
   </>
 );
 
+const GuardiaMedico = () => (
+  <>
+    <Header />
+    <h2 style={{ padding: "20px" }}>Guardia - Administrativo</h2>
+  </>
+);
+
+const ConsultoriosMedico = () => (
+  <>
+    <Header />
+    <h2 style={{ padding: "20px" }}>Consultorios Externos - Administrativo</h2>
+  </>
+);
+
+const HospitalizacionMedico = () => (
+  <>
+    <Header />
+    <h2 style={{ padding: "20px" }}>Hospitalización - Administrativo</h2>
+  </>
+);
 
 export default function AppRouter() {
   const { usuario } = useAuth();
@@ -61,7 +81,18 @@ export default function AppRouter() {
         path="/medico/*"
         element={
           <ProtectedRoute rolPermitido="medico">
-            <MenuMedico />
+            <Routes>     
+              {/* index = ruta principal /medico */}
+              <Route index element={<MenuMedico />} />
+
+              {/* subrutas */}
+              <Route path="guardia" element={<GuardiaMedico />} />
+              <Route path="consultorios" element={<ConsultoriosMedico />} />
+              <Route path="hospitalizacion" element={<HospitalizacionMedico />} />
+
+              {/* fallback */}
+              <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
+            </Routes>
           </ProtectedRoute>
         }
       />

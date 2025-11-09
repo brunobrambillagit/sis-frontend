@@ -15,7 +15,7 @@ export default function MenuPrincipal() {
             className="menu-box guardia"
             onClick={() => navigate("/admin/guardia")}
           >
-            🏥 <h3>Atención en Guardia</h3>
+            🏥 <h3>Guardia</h3>
             <p>Lista de espera y admisión de pacientes.</p>
           </div>
 

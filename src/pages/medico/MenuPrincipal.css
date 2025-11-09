@@ -1,5 +1,5 @@
-.menu-container {
-  background: url("../../assets/wallpaper_menu_admin.jpg") no-repeat center center / cover;
+.menu-container-medico {
+  background: url("../../assets/wallpaper_menu_medico.jpg") no-repeat center center / cover;
   min-height: calc(100vh - 70px); /* 🔹 resta el header real */
   display: flex;
   flex-direction: column;
@@ -9,14 +9,14 @@
   text-align: center;
 }
 
-.menu-container h2 {
+.menu-container-medico h2 {
   margin-bottom: 2rem;
   color: #ffffff;
   font-weight: 700;
   letter-spacing: 0.5px;
 }
 
-.menu-options {
+.menu-options-medico {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
@@ -24,7 +24,7 @@
   max-width: 1000px;
 }
 
-.menu-box {
+.menu-box-medico {
   background: #ffffff;
   border-radius: 1rem;
   padding: 1.8rem 1.5rem;
@@ -34,23 +34,23 @@
   border-top: 6px solid transparent;
 }
 
-.menu-box:hover {
+.menu-box-medico:hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
 }
 
-.menu-box h3 {
+.menu-box-medico h3 {
   margin: 0.5rem 0;
   color: #0a4275;
   font-weight: 600;
 }
 
-.menu-box p {
+.menu-box-medico p {
   color: #555;
   font-size: 0.95rem;
 }
 
-/* Colores institucionales según módulo */
+/* Colores por sección */
 .guardia {
   border-top-color: #0d6efd; /* Azul Bootstrap */
 }
@@ -65,10 +65,10 @@
 
 /* Responsivo */
 @media (max-width: 768px) {
-  .menu-container {
+  .menu-container-medico {
     padding: 1.5rem 1rem;
   }
-  .menu-box {
+  .menu-box-medico {
     padding: 1.2rem;
   }
 }
