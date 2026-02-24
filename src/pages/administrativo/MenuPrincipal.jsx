@@ -13,7 +13,7 @@ export default function MenuPrincipal() {
         <div className="menu-options">
           <div
             className="menu-box guardia"
-            onClick={() => navigate("/admin/guardia")}
+            onClick={() => navigate("/administrativo/guardia")}
           >
             🏥 <h3>Guardia</h3>
             <p>Lista de espera y admisión de pacientes.</p>
@@ -21,7 +21,7 @@ export default function MenuPrincipal() {
 
           <div
             className="menu-box consultorios"
-            onClick={() => navigate("/admin/consultorios")}
+            onClick={() => navigate("/administrativo/consultorios")}
           >
             💉 <h3>Consultorios Externos</h3>
             <p>Admisión y gestión de consultorios.</p>
@@ -29,7 +29,7 @@ export default function MenuPrincipal() {
 
           <div
             className="menu-box hospitalizacion"
-            onClick={() => navigate("/admin/hospitalizacion")}
+            onClick={() => navigate("/administrativo/hospitalizacion")}
           >
             🏨 <h3>Hospitalización</h3>
             <p>Pacientes internados y evolución clínica.</p>

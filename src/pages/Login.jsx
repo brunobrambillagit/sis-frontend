@@ -13,10 +13,10 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  useEffect(() => {
-    if (usuario?.rol === "administrativo") navigate("/admin");
-    if (usuario?.rol === "medico") navigate("/medico");
-  }, [usuario]);
+useEffect(() => {
+  if (usuario?.rol === "administrativo") navigate("/admin");
+  if (usuario?.rol === "medico") navigate("/medico");
+}, [usuario, navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

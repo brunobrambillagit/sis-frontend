@@ -5,11 +5,17 @@ import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 import MenuAdmin from "../pages/administrativo/MenuPrincipal";
 import MenuMedico from "../pages/medico/MenuPrincipal";
+import AltaPaciente from "../pages/administrativo/AltaPaciente";
+import Header from "../components/Header";
+import { Link } from "react-router-dom";
 
 const GuardiaAdmin = () => (
   <>
     <Header />
     <h2 style={{ padding: "20px" }}>Guardia - Administrativo</h2>
+    <Link to="alta-paciente" className="btn btn-primary">
+      Alta Paciente
+    </Link>
   </>
 );
 
@@ -59,17 +65,46 @@ export default function AppRouter() {
 
       {/* Rutas protegidas del administrador*/}
       <Route
-        path="/admin/*"
+        path="/administrativo/*"
         element={
           <ProtectedRoute rolPermitido="administrativo">
             <Routes>
-              {/* index = ruta principal /admin */}
+              {/* index = ruta principal /administrativo */}
               <Route index element={<MenuAdmin />} />
 
               {/* subrutas */}
-              <Route path="guardia" element={<GuardiaAdmin />} />
-              <Route path="consultorios" element={<ConsultoriosAdmin />} />
-              <Route path="hospitalizacion" element={<HospitalizacionAdmin />} />
+              <Route
+                path="guardia/*"
+                element={
+                  <Routes>
+                    <Route index element={<GuardiaAdmin />} />
+                    <Route path="alta-paciente" element={<AltaPaciente />} />
+                    <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
+                  </Routes>
+                }
+              />
+
+              <Route
+                path="consultorios/*"
+                element={
+                  <Routes>
+                    <Route index element={<ConsultoriosAdmin />} />
+                    <Route path="alta-paciente" element={<AltaPaciente />} />
+                    <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
+                  </Routes>
+                }
+              />
+
+              <Route
+                path="hospitalizacion/*"
+                element={
+                  <Routes>
+                    <Route index element={<HospitalizacionAdmin />} />
+                    <Route path="alta-paciente" element={<AltaPaciente />} />
+                    <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
+                  </Routes>
+                }
+              />
 
               {/* fallback */}
               <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
