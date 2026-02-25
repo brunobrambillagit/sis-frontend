@@ -14,7 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
 useEffect(() => {
-  if (usuario?.rol === "administrativo") navigate("/admin");
+  if (usuario?.rol === "administrativo") navigate("/administrativo");
   if (usuario?.rol === "medico") navigate("/medico");
 }, [usuario, navigate]);
 

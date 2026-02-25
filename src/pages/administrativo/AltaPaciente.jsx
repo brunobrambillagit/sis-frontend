@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { crearPaciente } from "../../api/pacientesApi";
+import { useNavigate } from "react-router-dom";
 
 const initialForm = {
   dni: "",
@@ -10,13 +11,14 @@ const initialForm = {
   // agregá acá los campos que tu backend requiera
 };
 
-export default function AltaPaciente() {
+export default function AltaPaciente({ redirectOnSuccess }) {
   const [form, setForm] = useState(initialForm);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [nroHistoriaClinica, setNroHistoriaClinica] = useState(null);
+  const navigate = useNavigate();
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -64,15 +66,9 @@ export default function AltaPaciente() {
       const data = await crearPaciente(form);
 
       // Ajustá esta extracción a lo que devuelva tu backend:
-      const nro =
-        data?.nroHistoriaClinica ??
-        data?.numeroHistoriaClinica ??
-        data?.historiaClinica?.nroHistoriaClinica ??
-        data?.hc?.nroHistoriaClinica ??
-        null;
-
+      const nro = data?.nroHistoriaClinica ?? null;
       setNroHistoriaClinica(nro);
-      setSuccessMsg("Paciente creado correctamente.");
+      setSuccessMsg("Paciente creado y admisionado correctamente.");
       resetForm(); // opcional (lo pediste como “opcional”)
     } catch (err) {
       const { status, message } = parseBackendError(err);
@@ -104,10 +100,21 @@ export default function AltaPaciente() {
       {successMsg && (
         <div className="alert alert-success mt-3" role="alert">
           <div>{successMsg}</div>
+
           {nroHistoriaClinica && (
             <div className="mt-2">
               <strong>N° Historia Clínica:</strong> {nroHistoriaClinica}
             </div>
+          )}
+
+          {redirectOnSuccess && (
+            <button
+              type="button"
+              className="btn btn-success mt-3"
+              onClick={() => navigate(redirectOnSuccess)}
+            >
+              Volver
+            </button>
           )}
         </div>
       )}

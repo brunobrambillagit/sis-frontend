@@ -1,5 +1,5 @@
 // src/router/AppRouter.jsx
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "../pages/Login";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
@@ -8,49 +8,32 @@ import MenuMedico from "../pages/medico/MenuPrincipal";
 import AltaPaciente from "../pages/administrativo/AltaPaciente";
 import Header from "../components/Header";
 import { Link } from "react-router-dom";
+import ListaEsperaGuardiaAdmin from "../pages/administrativo/guardia/ListaEspera";
+import ListaEsperaConsultoriosAdmin from "../pages/administrativo/consultorios/ListaEspera";
+import ListaPacientesHospitalizacionAdmin from "../pages/administrativo/hospitalizacion/ListaPacientes";
+import AdmisionGuardia from "../pages/administrativo/guardia/AdmisionGuardia";
+import AdmisionConsultorios from "../pages/administrativo/consultorios/AdmisionConsultorios";
+import AdmisionHospitalizacion from "../pages/administrativo/hospitalizacion/AdmisionHospitalizacion";
 
-const GuardiaAdmin = () => (
-  <>
-    <Header />
-    <h2 style={{ padding: "20px" }}>Guardia - Administrativo</h2>
-    <Link to="alta-paciente" className="btn btn-primary">
-      Alta Paciente
-    </Link>
-  </>
-);
-
-const ConsultoriosAdmin = () => (
-  <>
-    <Header />
-    <h2 style={{ padding: "20px" }}>Consultorios Externos - Administrativo</h2>
-  </>
-);
-
-const HospitalizacionAdmin = () => (
-  <>
-    <Header />
-    <h2 style={{ padding: "20px" }}>Hospitalización - Administrativo</h2>
-  </>
-);
 
 const GuardiaMedico = () => (
   <>
     <Header />
-    <h2 style={{ padding: "20px" }}>Guardia - Administrativo</h2>
+    <h2 style={{ padding: "20px" }}>Guardia - Medico</h2>
   </>
 );
 
 const ConsultoriosMedico = () => (
   <>
     <Header />
-    <h2 style={{ padding: "20px" }}>Consultorios Externos - Administrativo</h2>
+    <h2 style={{ padding: "20px" }}>Consultorios Externos - Medico</h2>
   </>
 );
 
 const HospitalizacionMedico = () => (
   <>
     <Header />
-    <h2 style={{ padding: "20px" }}>Hospitalización - Administrativo</h2>
+    <h2 style={{ padding: "20px" }}>Hospitalización - Medico</h2>
   </>
 );
 
@@ -73,38 +56,16 @@ export default function AppRouter() {
               <Route index element={<MenuAdmin />} />
 
               {/* subrutas */}
-              <Route
-                path="guardia/*"
-                element={
-                  <Routes>
-                    <Route index element={<GuardiaAdmin />} />
-                    <Route path="alta-paciente" element={<AltaPaciente />} />
-                    <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
-                  </Routes>
-                }
-              />
+              <Route path="guardia" element={<ListaEsperaGuardiaAdmin />} />
+              <Route path="guardia/admision" element={<AdmisionGuardia />} />
 
-              <Route
-                path="consultorios/*"
-                element={
-                  <Routes>
-                    <Route index element={<ConsultoriosAdmin />} />
-                    <Route path="alta-paciente" element={<AltaPaciente />} />
-                    <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
-                  </Routes>
-                }
-              />
 
-              <Route
-                path="hospitalizacion/*"
-                element={
-                  <Routes>
-                    <Route index element={<HospitalizacionAdmin />} />
-                    <Route path="alta-paciente" element={<AltaPaciente />} />
-                    <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
-                  </Routes>
-                }
-              />
+              <Route path="consultorios" element={<ListaEsperaConsultoriosAdmin />} />
+              <Route path="consultorios/admision" element={<AdmisionConsultorios />} />
+
+
+              <Route path="hospitalizacion" element={<ListaPacientesHospitalizacionAdmin />} />
+              <Route path="hospitalizacion/admision" element={<AdmisionHospitalizacion />} />
 
               {/* fallback */}
               <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
