@@ -1,63 +1,49 @@
-// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { loginApi } from "../api/authApi";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const navigate = useNavigate();
+function normalizarRol(rolBackend) {
+  if (!rolBackend) return null;
+  const r = String(rolBackend).toUpperCase();
+  if (r === "ADMINISTRATIVO") return "administrativo";
+  if (r === "MEDICO") return "medico";
+  return rolBackend;
+}
 
+export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
 
-  // Al iniciar la app, recupera sesión (si existe)
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("usuario");
-
     if (storedToken) setToken(storedToken);
     if (storedUser) setUsuario(JSON.parse(storedUser));
   }, []);
 
-  const login = (email, password) => {
-    // Simulación temporal: después se reemplaza por API real
-    if (email === "admin@hospital.com" && password === "1234") {
-      const fakeToken = "FAKE_JWT_ADMIN";
-      const user = { nombre: "Administrador", rol: "administrativo" };
+  const login = async (email, password) => {
+    const data = await loginApi(email, password); // {token, email, rol}
 
-      setUsuario(user);
-      setToken(fakeToken);
+    const user = {
+      email: data.email,
+      rol: normalizarRol(data.rol),
+    };
 
-      localStorage.setItem("token", fakeToken);
-      localStorage.setItem("usuario", JSON.stringify(user));
+    setToken(data.token);
+    setUsuario(user);
 
-      navigate("/admin");
-      return;
-    }
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("usuario", JSON.stringify(user));
 
-    if (email === "medico@hospital.com" && password === "1234") {
-      const fakeToken = "FAKE_JWT_MEDICO";
-      const user = { nombre: "Dr. Gómez", rol: "medico" };
-
-      setUsuario(user);
-      setToken(fakeToken);
-
-      localStorage.setItem("token", fakeToken);
-      localStorage.setItem("usuario", JSON.stringify(user));
-
-      navigate("/medico");
-      return;
-    }
-
-    alert("Credenciales inválidas");
+    return user;
   };
 
   const logout = () => {
-    setUsuario(null);
     setToken(null);
+    setUsuario(null);
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
-    navigate("/login");
   };
 
   return (
