@@ -1,21 +1,19 @@
 import Header from "../../../components/Header";
 import { useNavigate } from "react-router-dom";
+import EpisodiosActivosTable from "../../../components/EpisodiosActivosTable";
 
 export default function ListaEspera() {
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
   return (
-    <><Header />
-    <div style={{ padding: "20px" }}>
-      <h2>Lista de espera - Consultorios</h2>
-      <p>Bienvenido al panel administrativo del Sistema Integral Sanitario.</p>
-    </div>
-    <button
-    className="btn btn-primary"
-    onClick={() => navigate("/administrativo/consultorios/admision")}
-    >
-    Admisionar paciente
-    </button>
+    <>
+      <Header />
+      <EpisodiosActivosTable
+        servicio="CONSULTORIOS"
+        titulo="Lista de espera - Consultorios"
+        mostrarBotonAdmision={true}
+        onAdmision={() => navigate("/administrativo/consultorios/admision")}
+      />
     </>
   );
 }

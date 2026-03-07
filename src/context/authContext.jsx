@@ -23,9 +23,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const data = await loginApi(email, password); // {token, email, rol}
+    const data = await loginApi(email, password);
 
     const user = {
+      id: data.id,
       email: data.email,
       rol: normalizarRol(data.rol),
     };
