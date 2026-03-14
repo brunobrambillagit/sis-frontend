@@ -15,30 +15,14 @@ import AdmisionGuardia from "../pages/administrativo/guardia/AdmisionGuardia";
 import AdmisionConsultorios from "../pages/administrativo/consultorios/AdmisionConsultorios";
 import AdmisionHospitalizacion from "../pages/administrativo/hospitalizacion/AdmisionHospitalizacion";
 
+import ListaEsperaGuardiaMedico from "../pages/medico/guardia/ListaEspera";
+import ListaEsperaConsultoriosMedico from "../pages/medico/consultorios/ListaEspera";
+import ListaEsperaHospitalizacionMedico from "../pages/medico/hospitalizacion/ListaEspera";
+
+
 const LayoutConHeader = () => (
   <>
     <Outlet />
-  </>
-);
-
-const GuardiaMedico = () => (
-  <>
-    <Header />
-    <h2 style={{ padding: "20px" }}>Guardia - Medico</h2>
-  </>
-);
-
-const ConsultoriosMedico = () => (
-  <>
-    <Header />
-    <h2 style={{ padding: "20px" }}>Consultorios Externos - Medico</h2>
-  </>
-);
-
-const HospitalizacionMedico = () => (
-  <>
-    <Header />
-    <h2 style={{ padding: "20px" }}>Hospitalización - Medico</h2>
   </>
 );
 
@@ -81,9 +65,10 @@ export default function AppRouter() {
         }
       >
         <Route index element={<MenuMedico />} />
-        <Route path="guardia" element={<GuardiaMedico />} />
-        <Route path="consultorios" element={<ConsultoriosMedico />} />
-        <Route path="hospitalizacion" element={<HospitalizacionMedico />} />
+        <Route path="guardia" element={<ListaEsperaGuardiaMedico />} />
+        <Route path="consultorios" element={<ListaEsperaConsultoriosMedico />} />
+        <Route path="hospitalizacion" element={<ListaEsperaHospitalizacionMedico />} />
+
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
     </Routes>
