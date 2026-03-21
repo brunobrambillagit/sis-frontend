@@ -1,9 +1,11 @@
-    import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodiosApi";
 import { useAuth } from "../context/AuthContext";
 
 export default function EpisodiosMedicoTable({ servicio, titulo }) {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
 
   const [episodios, setEpisodios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,14 +42,17 @@ export default function EpisodiosMedicoTable({ servicio, titulo }) {
       await cargarDatos();
     } catch (err) {
       console.error(err);
-      const mensaje = err?.response?.data?.message || err?.response?.data || "No se pudo cambiar el estado.";
+      const mensaje =
+        err?.response?.data?.message ||
+        err?.response?.data ||
+        "No se pudo cambiar el estado.";
       alert(mensaje);
     } finally {
       setProcesandoId(null);
     }
   };
 
-  const renderAcciones = (ep) => {
+  const renderAccionesEstado = (ep) => {
     if (usuario?.rol !== "medico") {
       return <span className="text-muted">Sin acciones</span>;
     }
@@ -126,7 +131,8 @@ export default function EpisodiosMedicoTable({ servicio, titulo }) {
                 <th>Nombre</th>
                 <th>Estado</th>
                 <th>Fecha ingreso</th>
-                <th>Acciones</th>
+                <th>Acción clínica</th>
+                <th>Detalle</th>
               </tr>
             </thead>
             <tbody>
@@ -137,8 +143,20 @@ export default function EpisodiosMedicoTable({ servicio, titulo }) {
                   <td>{ep.apellido}</td>
                   <td>{ep.nombre}</td>
                   <td>{ep.estadoAtencion}</td>
-                  <td>{ep.fechaIngreso ? new Date(ep.fechaIngreso).toLocaleString("es-AR") : "-"}</td>
-                  <td>{renderAcciones(ep)}</td>
+                  <td>
+                    {ep.fechaIngreso
+                      ? new Date(ep.fechaIngreso).toLocaleString("es-AR")
+                      : "-"}
+                  </td>
+                  <td>{renderAccionesEstado(ep)}</td>
+                  <td>
+                    <button
+                      className="btn btn-outline-dark btn-sm"
+                      onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
+                    >
+                      Abrir episodio
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -148,4 +166,3 @@ export default function EpisodiosMedicoTable({ servicio, titulo }) {
     </div>
   );
 }
-    

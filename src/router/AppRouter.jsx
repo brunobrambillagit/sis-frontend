@@ -19,6 +19,8 @@ import ListaEsperaGuardiaMedico from "../pages/medico/guardia/ListaEspera";
 import ListaEsperaConsultoriosMedico from "../pages/medico/consultorios/ListaEspera";
 import ListaEsperaHospitalizacionMedico from "../pages/medico/hospitalizacion/ListaEspera";
 
+import EpisodioDetalle from "../pages/medico/EpisodioDetalle";
+
 
 const LayoutConHeader = () => (
   <>
@@ -68,6 +70,7 @@ export default function AppRouter() {
         <Route path="guardia" element={<ListaEsperaGuardiaMedico />} />
         <Route path="consultorios" element={<ListaEsperaConsultoriosMedico />} />
         <Route path="hospitalizacion" element={<ListaEsperaHospitalizacionMedico />} />
+        <Route path="episodios/:id" element={<EpisodioDetalle />} />
 
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
