@@ -8,18 +8,7 @@ export default function AdmisionGuardia() {
 
   return (
     <>      <Header />
-
-    <div style={{ padding: 20 }}>
-      <h2>Guardia - Admisión</h2>
-
-      <button
-        type="button"
-        onClick={() => navigate("/administrativo/guardia")}
-        className="btn btn-outline-secondary mb-3"
-      >
-        Volver a Guardia
-      </button>
-
+    <div>
       <AltaPaciente />
     </div>
         </>

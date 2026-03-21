@@ -11,7 +11,7 @@ const navigate = useNavigate();
       <Header />
       <EpisodiosActivosTable
         servicio="GUARDIA"
-        titulo="Lista de espera - Guardia"
+        titulo="Listado de pacientes en Guardia"
         mostrarBotonAdmision={true}
         onAdmision={() => navigate("/administrativo/guardia/admision")}
       />

@@ -2,7 +2,46 @@ import { useEffect, useState } from "react";
 import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodiosApi";
 import { useAuth } from "../context/AuthContext";
 
-export default function EpisodiosActivosTable({ servicio, titulo, mostrarBotonAdmision = false, onAdmision }) {
+function formatearFecha(fecha) {
+  return fecha ? new Date(fecha).toLocaleString("es-AR") : "-";
+}
+
+function obtenerClaseEstado(estado) {
+  switch (estado) {
+    case "EN_ESPERA":
+      return "sis-status sis-status-espera";
+    case "EN_ATENCION":
+      return "sis-status sis-status-atencion";
+    case "FINALIZADO":
+      return "sis-status sis-status-finalizado";
+    case "ALTA":
+      return "sis-status sis-status-alta";
+    default:
+      return "sis-status sis-status-default";
+  }
+}
+
+function formatearEstado(estado) {
+  switch (estado) {
+    case "EN_ESPERA":
+      return "En espera";
+    case "EN_ATENCION":
+      return "En atención";
+    case "FINALIZADO":
+      return "Finalizado";
+    case "ALTA":
+      return "Alta";
+    default:
+      return estado || "-";
+  }
+}
+
+export default function EpisodiosActivosTable({
+  servicio,
+  titulo,
+  mostrarBotonAdmision = false,
+  onAdmision,
+}) {
   const { usuario } = useAuth();
 
   const [episodios, setEpisodios] = useState([]);
@@ -28,33 +67,22 @@ export default function EpisodiosActivosTable({ servicio, titulo, mostrarBotonAd
     cargarDatos();
   }, [servicio]);
 
-  const obtenerUsuarioIdDesdeStorage = () => {
-    const userStr = localStorage.getItem("usuario");
-    if (!userStr) return null;
-
-    try {
-      const user = JSON.parse(userStr);
-      return user.id || null;
-    } catch {
-      return null;
-    }
-  };
-
   const handleAlta = async (episodioId) => {
     try {
-      const usuarioId = obtenerUsuarioIdDesdeStorage();
-
-      if (!usuarioId) {
-        alert("No se encontró el id del usuario logueado. Revisemos luego el login para guardarlo en AuthContext.");
+      if (!usuario?.id) {
+        alert("No se encontró el id del usuario logueado. Cerrá sesión e iniciá nuevamente.");
         return;
       }
 
       setProcesandoId(episodioId);
-      await cambiarEstadoEpisodio(episodioId, "ALTA", usuarioId);
+      await cambiarEstadoEpisodio(episodioId, "ALTA", usuario.id);
       await cargarDatos();
     } catch (err) {
       console.error(err);
-      const mensaje = err?.response?.data?.message || err?.response?.data || "No se pudo dar el alta.";
+      const mensaje =
+        err?.response?.data?.message ||
+        err?.response?.data ||
+        "No se pudo dar el alta.";
       alert(mensaje);
     } finally {
       setProcesandoId(null);
@@ -62,79 +90,100 @@ export default function EpisodiosActivosTable({ servicio, titulo, mostrarBotonAd
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2 className="mb-0">{titulo}</h2>
+    <div className="sis-page">
+      <div className="sis-page-header">
+        <div className="sis-page-title-wrap">
+          <h2 className="sis-page-title">{titulo}</h2>
+          <p className="sis-page-subtitle">
+            
+          </p>
+        </div>
 
-        <div className="d-flex gap-2">
-          <button className="btn btn-outline-secondary" onClick={cargarDatos}>
-            Actualizar
+        <div className="sis-page-actions">
+          <button className="sis-btn sis-btn-outline" onClick={cargarDatos}>
+            Actualizar listado
           </button>
 
           {mostrarBotonAdmision && (
-            <button className="btn btn-primary" onClick={onAdmision}>
+            <button className="sis-btn sis-btn-primary" onClick={onAdmision}>
               Admisionar paciente
             </button>
           )}
         </div>
       </div>
 
-      {loading && <p>Cargando pacientes...</p>}
+      <div className="sis-card">
+        <div className="sis-card-body">
+          {loading && (
+            <div className="sis-loading-state">
+              Cargando pacientes...
+            </div>
+          )}
 
-      {!loading && error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
+          {!loading && error && (
+            <div className="sis-alert sis-alert-danger" role="alert">
+              {error}
+            </div>
+          )}
 
-      {!loading && !error && episodios.length === 0 && (
-        <div className="alert alert-info" role="alert">
-          No hay pacientes activos en este servicio.
-        </div>
-      )}
+          {!loading && !error && episodios.length === 0 && (
+            <div className="sis-alert sis-alert-info" role="alert">
+              No hay pacientes activos en este servicio.
+            </div>
+          )}
 
-      {!loading && !error && episodios.length > 0 && (
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover align-middle">
-            <thead className="table-light">
-              <tr>
-                <th>Episodio</th>
-                <th>DNI</th>
-                <th>Apellido</th>
-                <th>Nombre</th>
-                <th>Estado</th>
-                <th>Fecha ingreso</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {episodios.map((ep) => (
-                <tr key={ep.episodioId}>
-                  <td>{ep.episodioId}</td>
-                  <td>{ep.dni}</td>
-                  <td>{ep.apellido}</td>
-                  <td>{ep.nombre}</td>
-                  <td>{ep.estadoAtencion}</td>
-                  <td>{ep.fechaIngreso ? new Date(ep.fechaIngreso).toLocaleString("es-AR") : "-"}</td>
-                  <td>
-                    {usuario?.rol === "administrativo" && ep.estadoAtencion === "FINALIZADO" ? (
-                      <button
-                        className="btn btn-success btn-sm"
-                        disabled={procesandoId === ep.episodioId}
-                        onClick={() => handleAlta(ep.episodioId)}
-                      >
-                        {procesandoId === ep.episodioId ? "Procesando..." : "Dar alta"}
-                      </button>
-                    ) : (
-                      <span className="text-muted">Sin acciones</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {!loading && !error && episodios.length > 0 && (
+            <div className="sis-table-wrapper">
+              <table className="sis-table">
+                <thead>
+                  <tr>
+                    <th>Episodio</th>
+                    <th>DNI</th>
+                    <th>Apellido</th>
+                    <th>Nombre</th>
+                    <th>Estado</th>
+                    <th>Fecha ingreso</th>
+                    <th>Acciones administrativas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {episodios.map((ep) => (
+                    <tr key={ep.episodioId}>
+                      <td className="sis-cell-strong">{ep.episodioId}</td>
+                      <td>{ep.dni || "-"}</td>
+                      <td>{ep.apellido || "-"}</td>
+                      <td>{ep.nombre || "-"}</td>
+                      <td>
+                        <span className={obtenerClaseEstado(ep.estadoAtencion)}>
+                          {formatearEstado(ep.estadoAtencion)}
+                        </span>
+                      </td>
+                      <td className="sis-cell-muted">
+                        {formatearFecha(ep.fechaIngreso)}
+                      </td>
+                      <td className="sis-actions-cell">
+                        {usuario?.rol === "administrativo" && ep.estadoAtencion === "FINALIZADO" ? (
+                          <div className="sis-actions-group">
+                            <button
+                              className="sis-btn sis-btn-success sis-btn-sm"
+                              disabled={procesandoId === ep.episodioId}
+                              onClick={() => handleAlta(ep.episodioId)}
+                            >
+                              {procesandoId === ep.episodioId ? "Procesando..." : "Dar alta"}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="sis-text-muted">Sin acciones disponibles</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

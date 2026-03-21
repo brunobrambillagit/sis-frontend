@@ -7,7 +7,7 @@ export default function ListaEspera() {
       <Header />
       <EpisodiosMedicoTable
         servicio="GUARDIA"
-        titulo="Guardia - Lista de espera médica"
+        titulo="Listado de pacientes en Guardia"
       />
     </>
   );

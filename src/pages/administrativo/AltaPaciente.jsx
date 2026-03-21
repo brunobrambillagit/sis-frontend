@@ -1,6 +1,6 @@
-// src/pages/administrativo/AltaPaciente.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Header from "../../components/Header";
 import { crearPaciente, obtenerPacientePorDni } from "../../api/pacientesApi";
 
 const initialForm = {
@@ -19,9 +19,7 @@ export default function AltaPaciente({ redirectOnSuccess }) {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(initialForm);
-
-  // estados del flujo
-  const [modo, setModo] = useState("idle"); 
+  const [modo, setModo] = useState("idle");
   // idle | encontrado | nuevo
 
   const [pacienteEncontrado, setPacienteEncontrado] = useState(null);
@@ -49,7 +47,6 @@ export default function AltaPaciente({ redirectOnSuccess }) {
   const onChange = (e) => {
     const { name, value } = e.target;
 
-    // si cambia DNI, volvemos a idle (porque cambió el paciente)
     if (name === "dni") {
       setForm((prev) => ({ ...prev, dni: value }));
       setModo("idle");
@@ -70,7 +67,6 @@ export default function AltaPaciente({ redirectOnSuccess }) {
 
   const buscarPorDni = async () => {
     resetAlerts();
-    setSuccessMsg("");
     setNroHistoriaClinica(null);
     setPacienteEncontrado(null);
 
@@ -88,10 +84,9 @@ export default function AltaPaciente({ redirectOnSuccess }) {
       setModo("encontrado");
       setSuccessMsg("Paciente encontrado.");
 
-      // opcional: completar nombre/apellido en el form solo a modo visual
       setForm((prev) => ({
         ...prev,
-        dni: p.dni,
+        dni: p.dni || dniLimpio,
         nombre: p.nombre || "",
         apellido: p.apellido || "",
       }));
@@ -100,10 +95,9 @@ export default function AltaPaciente({ redirectOnSuccess }) {
       const status = err?.response?.status;
       const msg = parseBackendMessage(err);
 
-      // tu backend usa 400 para "no existe"
       if (status === 400 && msg.includes("No existe paciente con DNI")) {
         setModo("nuevo");
-        setSuccessMsg(`No existe el paciente. Completá los datos para crearlo.`);
+        setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
         return;
       }
 
@@ -116,7 +110,6 @@ export default function AltaPaciente({ redirectOnSuccess }) {
   const crearNuevoPaciente = async (e) => {
     e.preventDefault();
     resetAlerts();
-    setSuccessMsg("");
     setNroHistoriaClinica(null);
 
     if (modo !== "nuevo") {
@@ -141,8 +134,6 @@ export default function AltaPaciente({ redirectOnSuccess }) {
 
       setSuccessMsg("Paciente creado y admisionado correctamente.");
       setNroHistoriaClinica(data?.nroHistoriaClinica ?? null);
-
-      // después de crear, ya “existe”
       setModo("encontrado");
       setPacienteEncontrado(data);
     } catch (err) {
@@ -164,168 +155,203 @@ export default function AltaPaciente({ redirectOnSuccess }) {
   const disabledGeneral = loadingBuscar || loadingCrear;
 
   return (
-    <div className="container" style={{ maxWidth: 900 }}>
-      {/* Alertas */}
-      {errorMsg && (
-        <div className="alert alert-danger mt-3" role="alert">
-          {errorMsg}
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="alert alert-success mt-3" role="alert">
-          <div>{successMsg}</div>
-          {nroHistoriaClinica && (
-            <div className="mt-2">
-              <strong>N° Historia Clínica:</strong> {nroHistoriaClinica}
-            </div>
-          )}
-
-          {redirectOnSuccess && modo === "encontrado" && (
+    <>
+      <div className="sis-page">
+        <div className="sis-page-header">
+          <div className="sis-page-title-wrap">
+            <h2 className="sis-page-title">Admisión / alta de paciente</h2>
+            <p className="sis-page-subtitle">
+              Buscá un paciente por DNI y, si no existe, registralo en el sistema.
+            </p>
+          </div>
+            <div className="sis-page-actions">
             <button
-              type="button"
-              className="btn btn-success mt-3"
-              onClick={() => navigate(redirectOnSuccess)}
+              className="sis-btn sis-btn-outline"
+              onClick={() => navigate(-1)}
             >
               Volver
             </button>
-          )}
-        </div>
-      )}
-
-      {/* Buscador DNI */}
-      <div className="card mt-3">
-        <div className="card-body">
-          <h5 className="card-title">Buscar paciente por DNI</h5>
-
-          <div className="row g-2 align-items-end">
-            <div className="col-md-4">
-              <label className="form-label">DNI</label>
-              <input
-                className="form-control"
-                name="dni"
-                value={form.dni}
-                onChange={onChange}
-                placeholder="35123456"
-                disabled={disabledGeneral}
-              />
-            </div>
-
-            <div className="col-md-4">
-              <button
-                type="button"
-                className="btn btn-primary w-100"
-                onClick={buscarPorDni}
-                disabled={disabledGeneral}
-              >
-                {loadingBuscar ? "Buscando..." : "Buscar"}
-              </button>
-            </div>
-
-            <div className="col-md-4">
-              <button
-                type="button"
-                className="btn btn-outline-secondary w-100"
-                onClick={resetTodo}
-                disabled={disabledGeneral}
-              >
-                Limpiar
-              </button>
-            </div>
           </div>
-
-          {/* Tarjeta paciente encontrado */}
-          {modo === "encontrado" && pacienteEncontrado && (
-            <div className="mt-3">
-              <div className="border rounded p-3">
-                <div><strong>Nombre:</strong> {pacienteEncontrado.nombre}</div>
-                <div><strong>Apellido:</strong> {pacienteEncontrado.apellido}</div>
-                <div><strong>DNI:</strong> {pacienteEncontrado.dni}</div>
-                <div><strong>HC:</strong> {pacienteEncontrado.nroHistoriaClinica}</div>
-              </div>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Form de creación: solo si no existe */}
-      <form className="mt-3" onSubmit={crearNuevoPaciente}>
-        <div className="card">
-          <div className="card-body">
-            <h5 className="card-title">Crear paciente (solo si no existe)</h5>
+        {errorMsg && (
+          <div className="sis-alert sis-alert-danger" role="alert">
+            {errorMsg}
+          </div>
+        )}
 
-            <div className="row g-3">
-              <div className="col-md-4">
-                <label className="form-label">Nombre</label>
-                <input
-                  className="form-control"
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={onChange}
-                  required={modo === "nuevo"}
-                  disabled={disabledGeneral || modo !== "nuevo"}
-                />
+        {successMsg && (
+          <div className="sis-alert sis-alert-success" role="alert">
+            <div>{successMsg}</div>
+            {nroHistoriaClinica && (
+              <div className="mt-2">
+                <strong>N° Historia Clínica:</strong> {nroHistoriaClinica}
               </div>
+            )}
 
-              <div className="col-md-4">
-                <label className="form-label">Apellido</label>
-                <input
-                  className="form-control"
-                  name="apellido"
-                  value={form.apellido}
-                  onChange={onChange}
-                  required={modo === "nuevo"}
-                  disabled={disabledGeneral || modo !== "nuevo"}
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">Fecha de nacimiento</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  name="fechaNacimiento"
-                  value={form.fechaNacimiento}
-                  onChange={onChange}
-                  disabled={disabledGeneral || modo !== "nuevo"}
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">Sexo</label>
-                <select
-                  className="form-select"
-                  name="sexo"
-                  value={form.sexo}
-                  onChange={onChange}
-                  disabled={disabledGeneral || modo !== "nuevo"}
+            {redirectOnSuccess && modo === "encontrado" && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="sis-btn sis-btn-success"
+                  onClick={() => navigate(redirectOnSuccess)}
                 >
-                  <option value="">Seleccionar...</option>
-                  <option value="M">Masculino</option>
-                  <option value="F">Femenino</option>
-                  <option value="X">Otro</option>
-                </select>
+                  Volver
+                </button>
               </div>
+            )}
+          </div>
+        )}
+
+        <div className="sis-detail-layout">
+          <section className="sis-card sis-section-card">
+            <div className="sis-section-header">
+              <h3 className="sis-section-title">Buscar paciente por DNI</h3>
             </div>
 
-            <div className="d-flex gap-2 mt-4">
-              <button
-                className="btn btn-success"
-                type="submit"
-                disabled={disabledGeneral || modo !== "nuevo"}
-              >
-                {loadingCrear ? "Creando..." : "Crear paciente"}
-              </button>
+            <div className="sis-card-body">
+              <div className="sis-form-grid">
+                <div className="sis-form-group">
+                  <label className="sis-form-label">DNI</label>
+                  <input
+                    className="sis-form-control"
+                    name="dni"
+                    value={form.dni}
+                    onChange={onChange}
+                    placeholder="35123456"
+                    disabled={disabledGeneral}
+                  />
+                </div>
+              </div>
 
-              {modo !== "nuevo" && (
-                <div className="text-muted" style={{ alignSelf: "center" }}>
-                  Primero buscá por DNI. Si no existe, se habilita el alta.
+              <div className="sis-page-actions" style={{ marginTop: "16px" }}>
+                <button
+                  type="button"
+                  className="sis-btn sis-btn-primary"
+                  onClick={buscarPorDni}
+                  disabled={disabledGeneral}
+                >
+                  {loadingBuscar ? "Buscando..." : "Buscar"}
+                </button>
+
+                <button
+                  type="button"
+                  className="sis-btn sis-btn-outline"
+                  onClick={resetTodo}
+                  disabled={disabledGeneral}
+                >
+                  Limpiar
+                </button>
+              </div>
+
+              {modo === "encontrado" && pacienteEncontrado && (
+                <div className="sis-detail-grid" style={{ marginTop: "18px" }}>
+                  <div className="sis-detail-item sis-detail-item--highlight">
+                    <span className="sis-detail-label">Paciente</span>
+                    <div className="sis-detail-value">
+                      {pacienteEncontrado.apellido || "-"}, {pacienteEncontrado.nombre || "-"}
+                    </div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">DNI</span>
+                    <div className="sis-detail-value">{pacienteEncontrado.dni || "-"}</div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Historia clínica</span>
+                    <div className="sis-detail-value">
+                      {pacienteEncontrado.nroHistoriaClinica || "-"}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          </section>
+
+          <form onSubmit={crearNuevoPaciente}>
+            <section className="sis-card sis-section-card">
+              <div className="sis-section-header">
+                <h3 className="sis-section-title">Crear paciente</h3>
+              </div>
+
+              <div className="sis-card-body">
+                <div className="sis-form-grid">
+                  <div className="sis-form-group">
+                    <label className="sis-form-label">Nombre</label>
+                    <input
+                      className="sis-form-control"
+                      name="nombre"
+                      value={form.nombre}
+                      onChange={onChange}
+                      required={modo === "nuevo"}
+                      disabled={disabledGeneral || modo !== "nuevo"}
+                    />
+                  </div>
+
+                  <div className="sis-form-group">
+                    <label className="sis-form-label">Apellido</label>
+                    <input
+                      className="sis-form-control"
+                      name="apellido"
+                      value={form.apellido}
+                      onChange={onChange}
+                      required={modo === "nuevo"}
+                      disabled={disabledGeneral || modo !== "nuevo"}
+                    />
+                  </div>
+
+                  <div className="sis-form-group">
+                    <label className="sis-form-label">Fecha de nacimiento</label>
+                    <input
+                      type="date"
+                      className="sis-form-control"
+                      name="fechaNacimiento"
+                      value={form.fechaNacimiento}
+                      onChange={onChange}
+                      disabled={disabledGeneral || modo !== "nuevo"}
+                    />
+                  </div>
+
+                  <div className="sis-form-group">
+                    <label className="sis-form-label">Sexo</label>
+                    <select
+                      className="sis-form-control"
+                      name="sexo"
+                      value={form.sexo}
+                      onChange={onChange}
+                      disabled={disabledGeneral || modo !== "nuevo"}
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="M">Masculino</option>
+                      <option value="F">Femenino</option>
+                      <option value="X">Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="sis-page-actions" style={{ marginTop: "20px" }}>
+                  <button
+                    className="sis-btn sis-btn-success"
+                    type="submit"
+                    disabled={disabledGeneral || modo !== "nuevo"}
+                  >
+                    {loadingCrear ? "Creando..." : "Crear paciente"}
+                  </button>
+
+                  {modo !== "nuevo" && (
+                    <span className="sis-text-muted">
+                      Primero buscá por DNI. Si no existe, se habilita el alta.
+                    </span>
+                  )}
+                </div>
+
+                
+              </div>
+            </section>
+          </form>
         </div>
-      </form>
-    </div>
+      </div>
+    </>
   );
 }

@@ -8,6 +8,40 @@ import {
   obtenerDetalleEpisodio,
 } from "../../api/episodiosDetalleApi";
 
+function formatearFecha(fecha) {
+  return fecha ? new Date(fecha).toLocaleString("es-AR") : "-";
+}
+
+function obtenerClaseEstado(estado) {
+  switch (estado) {
+    case "EN_ESPERA":
+      return "sis-status sis-status-espera";
+    case "EN_ATENCION":
+      return "sis-status sis-status-atencion";
+    case "FINALIZADO":
+      return "sis-status sis-status-finalizado";
+    case "ALTA":
+      return "sis-status sis-status-alta";
+    default:
+      return "sis-status sis-status-default";
+  }
+}
+
+function formatearEstado(estado) {
+  switch (estado) {
+    case "EN_ESPERA":
+      return "En espera";
+    case "EN_ATENCION":
+      return "En atención";
+    case "FINALIZADO":
+      return "Finalizado";
+    case "ALTA":
+      return "Alta";
+    default:
+      return estado || "-";
+  }
+}
+
 export default function EpisodioDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -140,257 +174,315 @@ export default function EpisodioDetalle() {
 
   return (
     <>
-      <Header />
+      <Header titulo="Detalle del episodio" />
 
-      <div className="container py-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="mb-0">Detalle del episodio</h2>
-          <button className="btn btn-outline-secondary" onClick={() => navigate(-1)}>
-            Volver
-          </button>
+      <div className="sis-page">
+        <div className="sis-page-header">
+          <div className="sis-page-title-wrap">
+            <h2 className="sis-page-title">Detalle del episodio</h2>
+            <p className="sis-page-subtitle">
+              Consulta clínica, observaciones y evolución médica del paciente.
+            </p>
+          </div>
+
+          <div className="sis-page-actions">
+            <button
+              className="sis-btn sis-btn-outline"
+              onClick={() => navigate(-1)}
+            >
+              Volver
+            </button>
+          </div>
         </div>
 
-        {loading && <p>Cargando detalle...</p>}
+        {loading && <div className="sis-loading-state">Cargando detalle...</div>}
 
         {!loading && error && (
-          <div className="alert alert-danger" role="alert">
+          <div className="sis-alert sis-alert-danger" role="alert">
             {error}
           </div>
         )}
 
         {!loading && !error && detalle && (
-          <>
-            <div className="card shadow-sm mb-4">
-              <div className="card-header">
-                <strong>Datos del paciente y episodio</strong>
+          <div className="sis-detail-layout">
+            <section className="sis-card sis-section-card">
+              <div className="sis-section-header">
+                <h3 className="sis-section-title">Datos del paciente y episodio</h3>
               </div>
-              <div className="card-body">
-                <div className="row g-3">
-                  <div className="col-md-4">
-                    <strong>Paciente:</strong>
-                    <div>{detalle.apellido}, {detalle.nombre}</div>
-                  </div>
 
-                  <div className="col-md-4">
-                    <strong>DNI:</strong>
-                    <div>{detalle.dni || "-"}</div>
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Nro. historia clínica:</strong>
-                    <div>{detalle.nroHistoriaClinica || "-"}</div>
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Episodio:</strong>
-                    <div>{detalle.episodioId}</div>
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Servicio:</strong>
-                    <div>{detalle.tipoServicio}</div>
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Estado:</strong>
-                    <div>{detalle.estadoAtencion}</div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <strong>Fecha de ingreso:</strong>
-                    <div>
-                      {detalle.fechaIngreso
-                        ? new Date(detalle.fechaIngreso).toLocaleString("es-AR")
-                        : "-"}
+              <div className="sis-card-body">
+                <div className="sis-detail-grid">
+                  <div className="sis-detail-item sis-detail-item--highlight">
+                    <span className="sis-detail-label">Paciente</span>
+                    <div className="sis-detail-value">
+                      {detalle.apellido || "-"}, {detalle.nombre || "-"}
                     </div>
                   </div>
 
-                  <div className="col-md-6">
-                    <strong>Fecha de egreso:</strong>
-                    <div>
-                      {detalle.fechaEgreso
-                        ? new Date(detalle.fechaEgreso).toLocaleString("es-AR")
-                        : "-"}
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">DNI</span>
+                    <div className="sis-detail-value">{detalle.dni || "-"}</div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Nro. historia clínica</span>
+                    <div className="sis-detail-value">
+                      {detalle.nroHistoriaClinica || "-"}
+                    </div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Episodio</span>
+                    <div className="sis-detail-value">{detalle.episodioId || "-"}</div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Servicio</span>
+                    <div className="sis-detail-value">{detalle.tipoServicio || "-"}</div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Estado</span>
+                    <div className="sis-detail-value">
+                      <span className={obtenerClaseEstado(detalle.estadoAtencion)}>
+                        {formatearEstado(detalle.estadoAtencion)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Fecha de ingreso</span>
+                    <div className="sis-detail-value">
+                      {formatearFecha(detalle.fechaIngreso)}
+                    </div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Fecha de egreso</span>
+                    <div className="sis-detail-value">
+                      {formatearFecha(detalle.fechaEgreso)}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="card shadow-sm mb-4">
-              <div className="card-header">
-                <strong>Observaciones de la historia clínica</strong>
+            <section className="sis-card sis-section-card">
+              <div className="sis-section-header">
+                <h3 className="sis-section-title">
+                  Observaciones de la historia clínica
+                </h3>
               </div>
-              <div className="card-body">
+
+              <div className="sis-card-body">
                 {detalle.observacionesHistoriaClinica ? (
-                  <p className="mb-0">{detalle.observacionesHistoriaClinica}</p>
+                  <p className="sis-rich-text mb-0">
+                    {detalle.observacionesHistoriaClinica}
+                  </p>
                 ) : (
-                  <p className="text-muted mb-0">No hay observaciones en la historia clínica.</p>
+                  <p className="sis-text-muted mb-0">
+                    No hay observaciones en la historia clínica.
+                  </p>
                 )}
               </div>
+            </section>
+
+            <div className="sis-detail-columns">
+              <section className="sis-card sis-section-card">
+                <div className="sis-section-header">
+                  <h3 className="sis-section-title">Nueva observación del episodio</h3>
+                </div>
+
+                <div className="sis-card-body">
+                  <form onSubmit={handleGuardarObservacion} className="sis-form">
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Observación</label>
+                      <textarea
+                        className="sis-form-control sis-textarea"
+                        rows="4"
+                        value={observacion}
+                        onChange={(e) => setObservacion(e.target.value)}
+                        placeholder="Ingresá una observación clínica o administrativa relevante..."
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="sis-btn sis-btn-primary"
+                      disabled={guardandoObservacion}
+                    >
+                      {guardandoObservacion ? "Guardando..." : "Guardar observación"}
+                    </button>
+                  </form>
+                </div>
+              </section>
+
+              <section className="sis-card sis-section-card">
+                <div className="sis-section-header">
+                  <h3 className="sis-section-title">
+                    Historial de observaciones del episodio
+                  </h3>
+                </div>
+
+                <div className="sis-card-body">
+                  {!detalle.observaciones || detalle.observaciones.length === 0 ? (
+                    <p className="sis-text-muted mb-0">
+                      No hay observaciones registradas.
+                    </p>
+                  ) : (
+                    <div className="sis-timeline">
+                      {detalle.observaciones.map((obs) => (
+                        <article key={obs.id} className="sis-timeline-item">
+                          <div className="sis-timeline-head">
+                            <strong className="sis-timeline-user">
+                              {obs.nombreUsuario || "Usuario"}
+                            </strong>
+                            <span className="sis-timeline-date">
+                              {formatearFecha(obs.fechaRegistro)}
+                            </span>
+                          </div>
+                          <div className="sis-timeline-body">
+                            {obs.observacion || "-"}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
 
-            <div className="card shadow-sm mb-4">
-              <div className="card-header">
-                <strong>Nueva observación del episodio</strong>
+            <section className="sis-card sis-section-card">
+              <div className="sis-section-header">
+                <h3 className="sis-section-title">Nueva evolución médica</h3>
               </div>
-              <div className="card-body">
-                <form onSubmit={handleGuardarObservacion}>
-                  <div className="mb-3">
-                    <label className="form-label">Observación</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      value={observacion}
-                      onChange={(e) => setObservacion(e.target.value)}
-                    />
+
+              <div className="sis-card-body">
+                <form onSubmit={handleGuardarEvolucion} className="sis-form">
+                  <div className="sis-form-grid">
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Diagnóstico/s</label>
+                      <textarea
+                        className="sis-form-control sis-textarea"
+                        rows="3"
+                        name="diagnosticos"
+                        value={formEvolucion.diagnosticos}
+                        onChange={handleChangeEvolucion}
+                        placeholder="Diagnóstico principal y diagnósticos asociados..."
+                      />
+                    </div>
+
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Evolución</label>
+                      <textarea
+                        className="sis-form-control sis-textarea"
+                        rows="5"
+                        name="evolucion"
+                        value={formEvolucion.evolucion}
+                        onChange={handleChangeEvolucion}
+                        placeholder="Describí la evolución clínica del paciente..."
+                      />
+                    </div>
+
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Medicación / indicaciones</label>
+                      <textarea
+                        className="sis-form-control sis-textarea"
+                        rows="4"
+                        name="medicacionIndicaciones"
+                        value={formEvolucion.medicacionIndicaciones}
+                        onChange={handleChangeEvolucion}
+                        placeholder="Indicaciones, tratamiento y medicación..."
+                      />
+                    </div>
+
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">
+                        Estudios / solicitud de estudios
+                      </label>
+                      <textarea
+                        className="sis-form-control sis-textarea"
+                        rows="4"
+                        name="estudiosSolicitados"
+                        value={formEvolucion.estudiosSolicitados}
+                        onChange={handleChangeEvolucion}
+                        placeholder="Estudios solicitados o a evaluar..."
+                      />
+                    </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="btn btn-primary"
-                    disabled={guardandoObservacion}
-                  >
-                    {guardandoObservacion ? "Guardando..." : "Guardar observación"}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            <div className="card shadow-sm mb-4">
-              <div className="card-header">
-                <strong>Historial de observaciones del episodio</strong>
-              </div>
-              <div className="card-body">
-                {!detalle.observaciones || detalle.observaciones.length === 0 ? (
-                  <p className="text-muted mb-0">No hay observaciones registradas.</p>
-                ) : (
-                  <div className="d-flex flex-column gap-3">
-                    {detalle.observaciones.map((obs) => (
-                      <div key={obs.id} className="border rounded p-3">
-                        <div className="d-flex justify-content-between flex-wrap mb-2">
-                          <strong>{obs.nombreUsuario}</strong>
-                          <small className="text-muted">
-                            {obs.fechaRegistro
-                              ? new Date(obs.fechaRegistro).toLocaleString("es-AR")
-                              : "-"}
-                          </small>
-                        </div>
-                        <div>{obs.observacion}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="card shadow-sm mb-4">
-              <div className="card-header">
-                <strong>Nueva evolución médica</strong>
-              </div>
-              <div className="card-body">
-                <form onSubmit={handleGuardarEvolucion}>
-                  <div className="mb-3">
-                    <label className="form-label">Diagnóstico/s</label>
-                    <textarea
-                      className="form-control"
-                      rows="2"
-                      name="diagnosticos"
-                      value={formEvolucion.diagnosticos}
-                      onChange={handleChangeEvolucion}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Evolución</label>
-                    <textarea
-                      className="form-control"
-                      rows="4"
-                      name="evolucion"
-                      value={formEvolucion.evolucion}
-                      onChange={handleChangeEvolucion}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Medicación / indicaciones</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      name="medicacionIndicaciones"
-                      value={formEvolucion.medicacionIndicaciones}
-                      onChange={handleChangeEvolucion}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Estudios / solicitud de estudios</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      name="estudiosSolicitados"
-                      value={formEvolucion.estudiosSolicitados}
-                      onChange={handleChangeEvolucion}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-success"
+                    className="sis-btn sis-btn-success"
                     disabled={guardandoEvolucion}
                   >
                     {guardandoEvolucion ? "Guardando..." : "Guardar evolución"}
                   </button>
                 </form>
               </div>
-            </div>
+            </section>
 
-            <div className="card shadow-sm mb-5">
-              <div className="card-header">
-                <strong>Historial de evoluciones</strong>
+            <section className="sis-card sis-section-card">
+              <div className="sis-section-header">
+                <h3 className="sis-section-title">Historial de evoluciones</h3>
               </div>
-              <div className="card-body">
+
+              <div className="sis-card-body">
                 {!detalle.evoluciones || detalle.evoluciones.length === 0 ? (
-                  <p className="text-muted mb-0">No hay evoluciones registradas.</p>
+                  <p className="sis-text-muted mb-0">No hay evoluciones registradas.</p>
                 ) : (
-                  <div className="d-flex flex-column gap-3">
+                  <div className="sis-timeline">
                     {detalle.evoluciones.map((ev) => (
-                      <div key={ev.id} className="border rounded p-3">
-                        <div className="d-flex justify-content-between flex-wrap mb-3">
-                          <strong>{ev.nombreUsuario}</strong>
-                          <small className="text-muted">
-                            {ev.fechaRegistro
-                              ? new Date(ev.fechaRegistro).toLocaleString("es-AR")
-                              : "-"}
-                          </small>
+                      <article key={ev.id} className="sis-timeline-item">
+                        <div className="sis-timeline-head">
+                          <strong className="sis-timeline-user">
+                            {ev.nombreUsuario || "Usuario"}
+                          </strong>
+                          <span className="sis-timeline-date">
+                            {formatearFecha(ev.fechaRegistro)}
+                          </span>
                         </div>
 
-                        <div className="mb-2">
-                          <strong>Diagnóstico/s:</strong>
-                          <div>{ev.diagnosticos || "-"}</div>
-                        </div>
+                        <div className="sis-evolution-grid">
+                          <div className="sis-evolution-block">
+                            <span className="sis-detail-label">Diagnóstico/s</span>
+                            <div className="sis-detail-value">
+                              {ev.diagnosticos || "-"}
+                            </div>
+                          </div>
 
-                        <div className="mb-2">
-                          <strong>Evolución:</strong>
-                          <div>{ev.evolucion || "-"}</div>
-                        </div>
+                          <div className="sis-evolution-block">
+                            <span className="sis-detail-label">Evolución</span>
+                            <div className="sis-detail-value">
+                              {ev.evolucion || "-"}
+                            </div>
+                          </div>
 
-                        <div className="mb-2">
-                          <strong>Medicación / indicaciones:</strong>
-                          <div>{ev.medicacionIndicaciones || "-"}</div>
-                        </div>
+                          <div className="sis-evolution-block">
+                            <span className="sis-detail-label">
+                              Medicación / indicaciones
+                            </span>
+                            <div className="sis-detail-value">
+                              {ev.medicacionIndicaciones || "-"}
+                            </div>
+                          </div>
 
-                        <div>
-                          <strong>Estudios / solicitud de estudios:</strong>
-                          <div>{ev.estudiosSolicitados || "-"}</div>
+                          <div className="sis-evolution-block">
+                            <span className="sis-detail-label">
+                              Estudios / solicitud de estudios
+                            </span>
+                            <div className="sis-detail-value">
+                              {ev.estudiosSolicitados || "-"}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      </article>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          </>
+            </section>
+          </div>
         )}
       </div>
     </>
