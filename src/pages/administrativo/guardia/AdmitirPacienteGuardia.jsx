@@ -14,6 +14,41 @@ const initialForm = {
   nroHistoriaClinica: "",
 };
 
+function calcularEdadDesdeFecha(fechaNacimiento) {
+  if (!fechaNacimiento) return "";
+
+  const nacimiento = new Date(`${fechaNacimiento}T00:00:00`);
+  if (Number.isNaN(nacimiento.getTime())) return "";
+
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad -= 1;
+  }
+
+  return edad >= 0 ? String(edad) : "";
+}
+
+function formatearFechaInput(fecha) {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+  const day = String(fecha.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function obtenerFechaMinNacimiento() {
+  const hoy = new Date();
+  const fechaMin = new Date(hoy);
+  fechaMin.setFullYear(hoy.getFullYear() - 120);
+  return formatearFechaInput(fechaMin);
+}
+
+function obtenerFechaMaxNacimiento() {
+  return formatearFechaInput(new Date());
+}
+
 function limpiarDni(value) {
   return (value || "").replace(/\D/g, "");
 }
@@ -27,13 +62,7 @@ function toDateInputValue(value) {
     if (match) return match[1];
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return "";
 }
 
 function parseBackendMessage(err) {
@@ -42,7 +71,7 @@ function parseBackendMessage(err) {
   return data?.message || data?.error || data?.mensaje || "";
 }
 
-export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
+export default function AdmitirPacienteGuardia() {
   const { usuario } = useAuth();
 
   const [form, setForm] = useState(initialForm);
@@ -57,7 +86,6 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
   const [successMsg, setSuccessMsg] = useState("");
 
   const disabledGeneral = loadingBuscar || loadingGuardarYAdmitir;
-
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
 
   const puedeAdmitir = useMemo(() => {
@@ -85,6 +113,16 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
       setPacienteActualizado(null);
       setEpisodioCreado(null);
       resetAlerts();
+    }
+
+    if (name === "fechaNacimiento") {
+      const edadCalculada = calcularEdadDesdeFecha(value);
+      setForm((prev) => ({
+        ...prev,
+        fechaNacimiento: value,
+        edad: edadCalculada,
+      }));
+      return;
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -120,13 +158,13 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
       const paciente = await obtenerPacientePorDni(dniLimpio);
       setPacienteOriginal(paciente);
       cargarPacienteEnFormulario(paciente);
-      setSuccessMsg("Paciente encontrado. Por favor verificar o actualizar los datos y luego generar la admisión.");
+      setSuccessMsg("Paciente encontrado. Verificá o actualizá los datos y luego generá la admisión.");
     } catch (err) {
       const status = err?.response?.status;
       const msg = parseBackendMessage(err);
 
       if (status === 400 && msg.includes("No existe paciente con DNI")) {
-        setErrorMsg("El paciente no existe. Debés crearlo antes de poder admitirlo.");
+        setErrorMsg("El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente.");
         return;
       }
 
@@ -175,7 +213,7 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
         apellido: form.apellido.trim(),
         fechaNacimiento: form.fechaNacimiento || null,
         edad: form.edad === "" ? null : edadNumero,
-        sexo: form.sexo.trim() || null,
+        sexo: form.sexo || null,
         estadoPersona: form.estadoPersona || null,
       };
 
@@ -205,9 +243,9 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
         <div className="sis-section-header">
           <div>
             <h3 className="sis-section-title">Buscar paciente para admisión</h3>
-            <p className="sis-text-muted" style={{ marginTop: "6px" }}>
-              Buscá un paciente existente por DNI. Si existe, podés actualizar sus datos y luego generar la admisión en guardia.
-            </p>
+            {/* <p className="sis-text-muted" style={{ marginTop: "6px" }}>
+              En este apartado solo se admiten pacientes ya existentes.
+            </p> */}
           </div>
         </div>
 
@@ -215,17 +253,6 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
           {errorMsg && (
             <div className="sis-alert sis-alert-danger" role="alert">
               <div>{errorMsg}</div>
-              {errorMsg.toLowerCase().includes("no existe") && (
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    className="sis-btn sis-btn-outline"
-                    onClick={onIrACrearPaciente}
-                  >
-                    Ir a crear paciente
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
@@ -248,7 +275,7 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
                 name="dni"
                 value={form.dni}
                 onChange={onChange}
-                placeholder="35123456"
+                placeholder="Ingresa el dni a buscar..."
                 disabled={disabledGeneral}
               />
             </div>
@@ -270,7 +297,7 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
               onClick={resetTodo}
               disabled={disabledGeneral}
             >
-              Limpiar
+              Limpiar campos
             </button>
           </div>
         </div>
@@ -280,9 +307,10 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
         <div className="sis-section-header">
           <div>
             <h3 className="sis-section-title">Datos del paciente</h3>
-            <p className="sis-text-muted" style={{ marginTop: "6px" }}>
-              Podés modificar todos los datos permitidos antes de confirmar la admisión. El DNI y el número de historia clínica quedan solo lectura.
-            </p>
+            {/* <p className="sis-text-muted" style={{ marginTop: "6px" }}>
+              Podés modificar todos los datos permitidos antes de confirmar la admisión.
+              El DNI y el número de historia clínica quedan solo lectura.
+            </p> */}
           </div>
         </div>
 
@@ -319,6 +347,8 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
                   name="fechaNacimiento"
                   value={form.fechaNacimiento}
                   onChange={onChange}
+                  min={obtenerFechaMinNacimiento()}
+                  max={obtenerFechaMaxNacimiento()}
                   disabled={!pacienteOriginal || disabledGeneral}
                 />
               </div>
@@ -326,14 +356,14 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
               <div className="sis-form-group">
                 <label className="sis-form-label">Edad</label>
                 <input
-                  type="number"
-                  min="0"
                   className="sis-form-control"
                   name="edad"
                   value={form.edad}
-                  onChange={onChange}
-                  disabled={!pacienteOriginal || disabledGeneral}
+                  disabled
                 />
+                  <small className="sis-text-muted">
+                    La edad se calcula automaticamente a partir de la fecha de nacimiento
+                  </small>
               </div>
 
               <div className="sis-form-group">
@@ -346,8 +376,8 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
                   disabled={!pacienteOriginal || disabledGeneral}
                 >
                   <option value="">Seleccionar</option>
-                  <option value="MASCULINO">MASCULINO</option>
-                  <option value="FEMENINO">FEMENINO</option>
+                  <option value="MASCULINO">Masculino</option>
+                  <option value="FEMENINO">Femenino</option>
                 </select>
               </div>
 
@@ -361,8 +391,8 @@ export default function AdmitirPacienteGuardia({ onIrACrearPaciente }) {
                   disabled={!pacienteOriginal || disabledGeneral}
                 >
                   <option value="">Seleccionar</option>
-                  <option value="VIVO">VIVO</option>
-                  <option value="FALLECIDO">FALLECIDO</option>
+                  <option value="VIVO">Vivo</option>
+                  <option value="FALLECIDO">Fallecido</option>
                 </select>
               </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodiosApi";
 import { useAuth } from "../context/AuthContext";
 
@@ -36,12 +37,13 @@ function formatearEstado(estado) {
   }
 }
 
-export default function EpisodiosActivosTable({
+export default function EpisodiosActivosTableGuardia({
   servicio,
   titulo,
-  mostrarBotonAdmision = false,
   onAdmision,
+  mostrarAccionesGuardia = false,
 }) {
+  const navigate = useNavigate();
   const { usuario } = useAuth();
 
   const [episodios, setEpisodios] = useState([]);
@@ -94,9 +96,7 @@ export default function EpisodiosActivosTable({
       <div className="sis-page-header">
         <div className="sis-page-title-wrap">
           <h2 className="sis-page-title">{titulo}</h2>
-          <p className="sis-page-subtitle">
-            
-          </p>
+          <p className="sis-page-subtitle"></p>
         </div>
 
         <div className="sis-page-actions">
@@ -104,10 +104,22 @@ export default function EpisodiosActivosTable({
             Actualizar listado
           </button>
 
-          {mostrarBotonAdmision && (
-            <button className="sis-btn sis-btn-primary" onClick={onAdmision}>
-              Admisionar paciente
-            </button>
+          {mostrarAccionesGuardia && (
+            <>
+              <button
+                className="sis-btn sis-btn-outline"
+                onClick={() => navigate("/administrativo/guardia/crear-paciente")}
+              >
+                Crear paciente
+              </button>
+
+              <button
+                className="sis-btn sis-btn-primary"
+                onClick={() => navigate("/administrativo/guardia/admision")}
+              >
+                Admisionar paciente
+              </button>
+            </>
           )}
         </div>
       </div>

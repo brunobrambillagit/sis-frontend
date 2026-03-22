@@ -1,19 +1,17 @@
 import Header from "../../../components/Header";
 import { useNavigate } from "react-router-dom";
-import EpisodiosActivosTable from "../../../components/EpisodiosActivosTable";
-
+import EpisodiosActivosTableGuardia from "../../../components/EpisodiosActivosTableGuardia";
 
 export default function ListaEspera() {
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
   return (
     <>
       <Header />
-      <EpisodiosActivosTable
+      <EpisodiosActivosTableGuardia
         servicio="GUARDIA"
         titulo="Listado de pacientes en Guardia"
-        mostrarBotonAdmision={true}
-        onAdmision={() => navigate("/administrativo/guardia/admision")}
+        mostrarAccionesGuardia={true}
       />
     </>
   );
