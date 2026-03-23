@@ -49,7 +49,7 @@ function formatearEstado(estado) {
 
 export default function EpisodiosMedicoTableHospitalizacion({
   servicio = "HOSPITALIZACION",
-  titulo = "Hospitalización - Pacientes activos",
+  titulo = "Listado de pacientes en Hospitalizacion",
 }) {
   const { usuario } = useAuth();
   const navigate = useNavigate();
@@ -207,6 +207,14 @@ export default function EpisodiosMedicoTableHospitalizacion({
                       <td className="sis-actions-cell">
                         <div className="sis-actions-group">
                           {renderAccionesEstado(ep)}
+
+                          <button
+                            className="sis-btn sis-btn-outline sis-btn-sm"
+                            onClick={() => navigate(`/medico/hospitalizacion/historial-traslados/${ep.episodioId}`)}
+                          >
+                            Ver historial traslados
+                          </button>
+
                           {ep.estadoAtencion !== "ALTA" && (
                             <button
                               className="sis-btn sis-btn-outline sis-btn-sm"

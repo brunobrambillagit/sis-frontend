@@ -100,6 +100,10 @@ export default function EpisodiosActivosTableHospitalizacion() {
     navigate(`/administrativo/hospitalizacion/traslado-cama/${episodioId}`);
   };
 
+  const handleVerHistorial = (episodioId) => {
+    navigate(`/administrativo/hospitalizacion/historial-traslados/${episodioId}`);
+  };
+
   return (
     <div className="sis-page">
       <div className="sis-page-header">
@@ -176,6 +180,13 @@ export default function EpisodiosActivosTableHospitalizacion() {
                       <td className="sis-cell-muted">{formatearFecha(ep.fechaIngreso)}</td>
                       <td className="sis-actions-cell">
                         <div className="sis-actions-group">
+                          <button
+                            className="sis-btn sis-btn-outline sis-btn-sm"
+                            onClick={() => handleVerHistorial(ep.episodioId)}
+                          >
+                            Ver historial traslados
+                          </button>
+
                           {ep.estadoAtencion !== "ALTA" && (
                             <button
                               className="sis-btn sis-btn-outline sis-btn-sm"
