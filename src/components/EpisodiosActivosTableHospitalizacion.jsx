@@ -13,7 +13,7 @@ function formatearFecha(fecha) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
+    hour12: false,
   });
 }
 
@@ -96,6 +96,10 @@ export default function EpisodiosActivosTableHospitalizacion() {
     }
   };
 
+  const handleCambiarCama = (episodioId) => {
+    navigate(`/administrativo/hospitalizacion/traslado-cama/${episodioId}`);
+  };
+
   return (
     <div className="sis-page">
       <div className="sis-page-header">
@@ -171,8 +175,17 @@ export default function EpisodiosActivosTableHospitalizacion() {
                       </td>
                       <td className="sis-cell-muted">{formatearFecha(ep.fechaIngreso)}</td>
                       <td className="sis-actions-cell">
-                        {usuario?.rol === "administrativo" && ep.estadoAtencion === "FINALIZADO" ? (
-                          <div className="sis-actions-group">
+                        <div className="sis-actions-group">
+                          {ep.estadoAtencion !== "ALTA" && (
+                            <button
+                              className="sis-btn sis-btn-outline sis-btn-sm"
+                              onClick={() => handleCambiarCama(ep.episodioId)}
+                            >
+                              Cambiar cama
+                            </button>
+                          )}
+
+                          {usuario?.rol === "administrativo" && ep.estadoAtencion === "FINALIZADO" && (
                             <button
                               className="sis-btn sis-btn-success sis-btn-sm"
                               disabled={procesandoId === ep.episodioId}
@@ -180,10 +193,12 @@ export default function EpisodiosActivosTableHospitalizacion() {
                             >
                               {procesandoId === ep.episodioId ? "Procesando..." : "Dar alta"}
                             </button>
-                          </div>
-                        ) : (
-                          <span className="sis-text-muted">Sin acciones disponibles</span>
-                        )}
+                          )}
+
+                          {ep.estadoAtencion !== "FINALIZADO" && (
+                            <span className="sis-text-muted">Alta no disponible</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

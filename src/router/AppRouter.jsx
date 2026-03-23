@@ -14,10 +14,12 @@ import ListaPacientesHospitalizacionAdmin from "../pages/administrativo/hospital
 import AdmisionGuardia from "../pages/administrativo/guardia/AdmisionGuardia";
 import AdmisionConsultorios from "../pages/administrativo/consultorios/AdmisionConsultorios";
 import AdmisionHospitalizacion from "../pages/administrativo/hospitalizacion/AdmisionHospitalizacion";
+import CambiarCamaHospitalizacionAdmin from "../pages/administrativo/hospitalizacion/CambiarCamaHospitalizacion";
 
 import ListaEsperaGuardiaMedico from "../pages/medico/guardia/ListaEspera";
 import ListaEsperaConsultoriosMedico from "../pages/medico/consultorios/ListaEspera";
 import ListaEsperaHospitalizacionMedico from "../pages/medico/hospitalizacion/ListaEspera";
+import CambiarCamaHospitalizacionMedico from "../pages/medico/hospitalizacion/CambiarCamaHospitalizacion";
 
 import EpisodioDetalle from "../pages/medico/EpisodioDetalle";
 
@@ -33,11 +35,9 @@ const LayoutConHeader = () => (
 export default function AppRouter() {
   return (
     <Routes>
-      {/* públicas */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
 
-      {/* administrativo */}
       <Route
         path="/administrativo"
         element={
@@ -58,11 +58,11 @@ export default function AppRouter() {
         <Route path="hospitalizacion" element={<ListaPacientesHospitalizacionAdmin />} />
         <Route path="hospitalizacion/crear-paciente" element={<CrearPacienteHospitalizacion />} />
         <Route path="hospitalizacion/admision" element={<AdmisionHospitalizacion />} />
+        <Route path="hospitalizacion/traslado-cama/:episodioId" element={<CambiarCamaHospitalizacionAdmin />}/>
 
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
 
-      {/* médico */}
       <Route
         path="/medico"
         element={
@@ -75,6 +75,7 @@ export default function AppRouter() {
         <Route path="guardia" element={<ListaEsperaGuardiaMedico />} />
         <Route path="consultorios" element={<ListaEsperaConsultoriosMedico />} />
         <Route path="hospitalizacion" element={<ListaEsperaHospitalizacionMedico />} />
+        <Route path="hospitalizacion/traslado-cama/:episodioId" element={<CambiarCamaHospitalizacionMedico />}/>
         <Route path="episodios/:id" element={<EpisodioDetalle />} />
 
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />

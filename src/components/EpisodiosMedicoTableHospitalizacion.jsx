@@ -13,7 +13,7 @@ function formatearFecha(fecha) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
+    hour12: false,
   });
 }
 
@@ -49,7 +49,7 @@ function formatearEstado(estado) {
 
 export default function EpisodiosMedicoTableHospitalizacion({
   servicio = "HOSPITALIZACION",
-  titulo = "Listado de pacientes en Hospitalizacion",
+  titulo = "Hospitalización - Pacientes activos",
 }) {
   const { usuario } = useAuth();
   const navigate = useNavigate();
@@ -64,7 +64,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
       setLoading(true);
       setError("");
       const data = await obtenerEpisodiosActivos(servicio);
-      setEpisodios(data);
+      setEpisodios(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
       setError("No se pudo cargar la lista de pacientes.");
@@ -160,11 +160,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
 
       <div className="sis-card">
         <div className="sis-card-body">
-          {loading && (
-            <div className="sis-loading-state">
-              Cargando pacientes...
-            </div>
-          )}
+          {loading && <div className="sis-loading-state">Cargando pacientes...</div>}
 
           {!loading && error && (
             <div className="sis-alert sis-alert-danger" role="alert">
@@ -207,12 +203,18 @@ export default function EpisodiosMedicoTableHospitalizacion({
                           {formatearEstado(ep.estadoAtencion)}
                         </span>
                       </td>
-                      <td className="sis-cell-muted">
-                        {formatearFecha(ep.fechaIngreso)}
-                      </td>
+                      <td className="sis-cell-muted">{formatearFecha(ep.fechaIngreso)}</td>
                       <td className="sis-actions-cell">
                         <div className="sis-actions-group">
                           {renderAccionesEstado(ep)}
+                          {ep.estadoAtencion !== "ALTA" && (
+                            <button
+                              className="sis-btn sis-btn-outline sis-btn-sm"
+                              onClick={() => navigate(`/medico/hospitalizacion/traslado-cama/${ep.episodioId}`)}
+                            >
+                              Cambiar cama
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="sis-actions-cell">

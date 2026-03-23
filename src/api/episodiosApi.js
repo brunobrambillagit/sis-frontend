@@ -17,3 +17,11 @@ export async function crearEpisodio(payload) {
   const { data } = await axiosClient.post("/api/episodios", payload);
   return data;
 }
+
+export async function cambiarCamaEpisodio(id, nuevaCamaId, usuarioId) {
+  const { data } = await axiosClient.patch(`/api/episodios/${id}/cama`, {
+    nuevaCamaId,
+    usuarioId,
+  });
+  return data;
+}
