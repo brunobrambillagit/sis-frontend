@@ -1,6 +1,6 @@
 import Header from "../../../components/Header";
 import { useNavigate } from "react-router-dom";
-import EpisodiosActivosTableGuardia from "../../../components/EpisodiosActivosTableGuardia";
+import EpisodiosActivosTableGuardia from "../../../components/EpisodiosAdminTableGuardia";
 
 export default function ListaEspera() {
   const navigate = useNavigate();
