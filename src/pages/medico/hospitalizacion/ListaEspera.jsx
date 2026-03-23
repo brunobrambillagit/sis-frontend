@@ -1,13 +1,11 @@
 import Header from "../../../components/Header";
-import EpisodiosMedicoTable from "../../../components/EpisodiosMedicoTable";
+import EpisodiosMedicoTableHospitalizacion from "../../../components/EpisodiosMedicoTableHospitalizacion";
 
 export default function ListaEspera() {
   return (
     <>
       <Header />
-      <EpisodiosMedicoTable
-        servicio="HOSPITALIZACION"
-        titulo="Hospitalización - Pacientes activos"
+      <EpisodiosMedicoTableHospitalizacion
       />
     </>
   );

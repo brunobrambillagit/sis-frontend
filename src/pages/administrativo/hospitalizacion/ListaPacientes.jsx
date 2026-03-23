@@ -1,20 +1,11 @@
 import Header from "../../../components/Header";
-import { useNavigate } from "react-router-dom";
-import EpisodiosActivosTableGuardia from "../../../components/EpisodiosActivosTableGuardia";
+import EpisodiosActivosTableHospitalizacion from "../../../components/EpisodiosActivosTableHospitalizacion";
 
-export default function ListaPacientes() {
-  const navigate = useNavigate();
-
+export default function ListaPacientesHospitalizacion() {
   return (
     <>
       <Header />
-      <EpisodiosActivosTableGuardia
-        servicio="HOSPITALIZACION"
-        titulo="Lista de pacientes Hospitalizados"
-        mostrarBotonAdmision={true}
-        onAdmision={() => navigate("/administrativo/hospitalizacion/admision")}
-      />
+      <EpisodiosActivosTableHospitalizacion />
     </>
   );
 }
-

@@ -47,14 +47,12 @@ function formatearEstado(estado) {
   }
 }
 
-export default function EpisodiosActivosTableGuardia({
-  servicio,
-  titulo,
-  onAdmision,
-  mostrarAccionesGuardia = false,
+export default function EpisodiosMedicoTableHospitalizacion({
+  servicio = "HOSPITALIZACION",
+  titulo = "Listado de pacientes en Hospitalizacion",
 }) {
-  const navigate = useNavigate();
   const { usuario } = useAuth();
+  const navigate = useNavigate();
 
   const [episodios, setEpisodios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +77,7 @@ export default function EpisodiosActivosTableGuardia({
     cargarDatos();
   }, [servicio]);
 
-  const handleAlta = async (episodioId) => {
+  const handleCambioEstado = async (episodioId, nuevoEstado) => {
     try {
       if (!usuario?.id) {
         alert("No se encontró el id del usuario logueado. Cerrá sesión e iniciá nuevamente.");
@@ -87,18 +85,62 @@ export default function EpisodiosActivosTableGuardia({
       }
 
       setProcesandoId(episodioId);
-      await cambiarEstadoEpisodio(episodioId, "ALTA", usuario.id);
+      await cambiarEstadoEpisodio(episodioId, nuevoEstado, usuario.id);
       await cargarDatos();
     } catch (err) {
       console.error(err);
       const mensaje =
         err?.response?.data?.message ||
         err?.response?.data ||
-        "No se pudo dar el alta.";
+        "No se pudo cambiar el estado.";
       alert(mensaje);
     } finally {
       setProcesandoId(null);
     }
+  };
+
+  const renderAccionesEstado = (ep) => {
+    if (usuario?.rol !== "medico") {
+      return <span className="sis-text-muted">Sin acciones</span>;
+    }
+
+    if (ep.estadoAtencion === "EN_ESPERA") {
+      return (
+        <button
+          className="sis-btn sis-btn-primary sis-btn-sm"
+          disabled={procesandoId === ep.episodioId}
+          onClick={() => handleCambioEstado(ep.episodioId, "EN_ATENCION")}
+        >
+          {procesandoId === ep.episodioId ? "Procesando..." : "Tomar paciente"}
+        </button>
+      );
+    }
+
+    if (ep.estadoAtencion === "EN_ATENCION") {
+      return (
+        <button
+          className="sis-btn sis-btn-warning sis-btn-sm"
+          disabled={procesandoId === ep.episodioId}
+          onClick={() => handleCambioEstado(ep.episodioId, "FINALIZADO")}
+        >
+          {procesandoId === ep.episodioId ? "Procesando..." : "Finalizar atención"}
+        </button>
+      );
+    }
+
+    if (ep.estadoAtencion === "FINALIZADO") {
+      return (
+        <button
+          className="sis-btn sis-btn-secondary sis-btn-sm"
+          disabled={procesandoId === ep.episodioId}
+          onClick={() => handleCambioEstado(ep.episodioId, "EN_ATENCION")}
+        >
+          {procesandoId === ep.episodioId ? "Procesando..." : "Reabrir atención"}
+        </button>
+      );
+    }
+
+    return <span className="sis-text-muted">Sin acciones</span>;
   };
 
   return (
@@ -111,26 +153,8 @@ export default function EpisodiosActivosTableGuardia({
 
         <div className="sis-page-actions">
           <button className="sis-btn sis-btn-outline" onClick={cargarDatos}>
-            Actualizar listado
+            Actualizar
           </button>
-
-          {mostrarAccionesGuardia && (
-            <>
-              <button
-                className="sis-btn sis-btn-outline"
-                onClick={() => navigate("/administrativo/guardia/crear-paciente")}
-              >
-                Crear paciente
-              </button>
-
-              <button
-                className="sis-btn sis-btn-primary"
-                onClick={() => navigate("/administrativo/guardia/admision")}
-              >
-                Admisionar paciente
-              </button>
-            </>
-          )}
         </div>
       </div>
 
@@ -163,9 +187,11 @@ export default function EpisodiosActivosTableGuardia({
                     <th>DNI</th>
                     <th>Apellido</th>
                     <th>Nombre</th>
+                    <th>Cama</th>
                     <th>Estado</th>
                     <th>Fecha ingreso</th>
-                    <th>Acciones administrativas</th>
+                    <th>Acciones clínicas</th>
+                    <th>Detalle</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,6 +201,7 @@ export default function EpisodiosActivosTableGuardia({
                       <td>{ep.dni || "-"}</td>
                       <td>{ep.apellido || "-"}</td>
                       <td>{ep.nombre || "-"}</td>
+                      <td>{ep.camaCodigo || "-"}</td>
                       <td>
                         <span className={obtenerClaseEstado(ep.estadoAtencion)}>
                           {formatearEstado(ep.estadoAtencion)}
@@ -184,19 +211,19 @@ export default function EpisodiosActivosTableGuardia({
                         {formatearFecha(ep.fechaIngreso)}
                       </td>
                       <td className="sis-actions-cell">
-                        {usuario?.rol === "administrativo" && ep.estadoAtencion === "FINALIZADO" ? (
-                          <div className="sis-actions-group">
-                            <button
-                              className="sis-btn sis-btn-success sis-btn-sm"
-                              disabled={procesandoId === ep.episodioId}
-                              onClick={() => handleAlta(ep.episodioId)}
-                            >
-                              {procesandoId === ep.episodioId ? "Procesando..." : "Dar alta"}
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="sis-text-muted">Sin acciones disponibles</span>
-                        )}
+                        <div className="sis-actions-group">
+                          {renderAccionesEstado(ep)}
+                        </div>
+                      </td>
+                      <td className="sis-actions-cell">
+                        <div className="sis-actions-group">
+                          <button
+                            className="sis-btn sis-btn-outline sis-btn-sm"
+                            onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
+                          >
+                            Abrir episodio
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -47,12 +47,7 @@ function formatearEstado(estado) {
   }
 }
 
-export default function EpisodiosActivosTableGuardia({
-  servicio,
-  titulo,
-  onAdmision,
-  mostrarAccionesGuardia = false,
-}) {
+export default function EpisodiosActivosTableHospitalizacion() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
 
@@ -65,11 +60,11 @@ export default function EpisodiosActivosTableGuardia({
     try {
       setLoading(true);
       setError("");
-      const data = await obtenerEpisodiosActivos(servicio);
-      setEpisodios(data);
+      const data = await obtenerEpisodiosActivos("HOSPITALIZACION");
+      setEpisodios(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setError("No se pudo cargar la lista de pacientes.");
+      setError("No se pudo cargar la lista de pacientes hospitalizados.");
     } finally {
       setLoading(false);
     }
@@ -77,7 +72,7 @@ export default function EpisodiosActivosTableGuardia({
 
   useEffect(() => {
     cargarDatos();
-  }, [servicio]);
+  }, []);
 
   const handleAlta = async (episodioId) => {
     try {
@@ -105,7 +100,7 @@ export default function EpisodiosActivosTableGuardia({
     <div className="sis-page">
       <div className="sis-page-header">
         <div className="sis-page-title-wrap">
-          <h2 className="sis-page-title">{titulo}</h2>
+          <h2 className="sis-page-title">Lista de pacientes hospitalizados</h2>
           <p className="sis-page-subtitle"></p>
         </div>
 
@@ -114,33 +109,25 @@ export default function EpisodiosActivosTableGuardia({
             Actualizar listado
           </button>
 
-          {mostrarAccionesGuardia && (
-            <>
-              <button
-                className="sis-btn sis-btn-outline"
-                onClick={() => navigate("/administrativo/guardia/crear-paciente")}
-              >
-                Crear paciente
-              </button>
+          <button
+            className="sis-btn sis-btn-outline"
+            onClick={() => navigate("/administrativo/hospitalizacion/crear-paciente")}
+          >
+            Crear paciente
+          </button>
 
-              <button
-                className="sis-btn sis-btn-primary"
-                onClick={() => navigate("/administrativo/guardia/admision")}
-              >
-                Admisionar paciente
-              </button>
-            </>
-          )}
+          <button
+            className="sis-btn sis-btn-primary"
+            onClick={() => navigate("/administrativo/hospitalizacion/admision")}
+          >
+            Admisionar paciente
+          </button>
         </div>
       </div>
 
       <div className="sis-card">
         <div className="sis-card-body">
-          {loading && (
-            <div className="sis-loading-state">
-              Cargando pacientes...
-            </div>
-          )}
+          {loading && <div className="sis-loading-state">Cargando pacientes...</div>}
 
           {!loading && error && (
             <div className="sis-alert sis-alert-danger" role="alert">
@@ -150,7 +137,7 @@ export default function EpisodiosActivosTableGuardia({
 
           {!loading && !error && episodios.length === 0 && (
             <div className="sis-alert sis-alert-info" role="alert">
-              No hay pacientes activos en este servicio.
+              No hay pacientes activos en hospitalización.
             </div>
           )}
 
@@ -163,6 +150,7 @@ export default function EpisodiosActivosTableGuardia({
                     <th>DNI</th>
                     <th>Apellido</th>
                     <th>Nombre</th>
+                    <th>Cama</th>
                     <th>Estado</th>
                     <th>Fecha ingreso</th>
                     <th>Acciones administrativas</th>
@@ -175,14 +163,13 @@ export default function EpisodiosActivosTableGuardia({
                       <td>{ep.dni || "-"}</td>
                       <td>{ep.apellido || "-"}</td>
                       <td>{ep.nombre || "-"}</td>
+                      <td>{ep.camaCodigo || "-"}</td>
                       <td>
                         <span className={obtenerClaseEstado(ep.estadoAtencion)}>
                           {formatearEstado(ep.estadoAtencion)}
                         </span>
                       </td>
-                      <td className="sis-cell-muted">
-                        {formatearFecha(ep.fechaIngreso)}
-                      </td>
+                      <td className="sis-cell-muted">{formatearFecha(ep.fechaIngreso)}</td>
                       <td className="sis-actions-cell">
                         {usuario?.rol === "administrativo" && ep.estadoAtencion === "FINALIZADO" ? (
                           <div className="sis-actions-group">

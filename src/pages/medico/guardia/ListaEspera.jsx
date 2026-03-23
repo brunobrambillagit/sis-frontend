@@ -6,8 +6,6 @@ export default function ListaEspera() {
     <>
       <Header />
       <EpisodiosMedicoTable
-        servicio="GUARDIA"
-        titulo="Listado de pacientes en Guardia"
       />
     </>
   );

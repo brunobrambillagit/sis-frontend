@@ -21,7 +21,8 @@ import ListaEsperaHospitalizacionMedico from "../pages/medico/hospitalizacion/Li
 
 import EpisodioDetalle from "../pages/medico/EpisodioDetalle";
 
-import CrearPacienteGuardia from "../pages/administrativo/guardia/CrearPacienteGuardia"
+import CrearPacienteGuardia from "../pages/administrativo/guardia/CrearPacienteGuardia";
+import CrearPacienteHospitalizacion from "../pages/administrativo/hospitalizacion/CrearPacienteHospitalizacion";
 
 const LayoutConHeader = () => (
   <>
@@ -46,15 +47,16 @@ export default function AppRouter() {
         }
       >
         <Route index element={<MenuAdmin />} />
+
         <Route path="guardia" element={<ListaEsperaGuardiaAdmin />} />
         <Route path="guardia/crear-paciente" element={<CrearPacienteGuardia />} />
         <Route path="guardia/admision" element={<AdmisionGuardia />} />
-
 
         <Route path="consultorios" element={<ListaEsperaConsultoriosAdmin />} />
         <Route path="consultorios/admision" element={<AdmisionConsultorios />} />
 
         <Route path="hospitalizacion" element={<ListaPacientesHospitalizacionAdmin />} />
+        <Route path="hospitalizacion/crear-paciente" element={<CrearPacienteHospitalizacion />} />
         <Route path="hospitalizacion/admision" element={<AdmisionHospitalizacion />} />
 
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />

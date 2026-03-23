@@ -4,7 +4,17 @@ import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodios
 import { useAuth } from "../context/AuthContext";
 
 function formatearFecha(fecha) {
-  return fecha ? new Date(fecha).toLocaleString("es-AR") : "-";
+  if (!fecha) return "-";
+
+  return new Date(fecha).toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
 }
 
 function obtenerClaseEstado(estado) {
@@ -37,7 +47,10 @@ function formatearEstado(estado) {
   }
 }
 
-export default function EpisodiosMedicoTable({ servicio, titulo }) {
+
+export default function EpisodiosMedicoTable({   
+  servicio = "GUARDIA",
+  titulo = "Listado de pacientes en Guardia",}) {
   const { usuario } = useAuth();
   const navigate = useNavigate();
 
