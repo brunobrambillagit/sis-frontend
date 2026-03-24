@@ -50,7 +50,7 @@ export async function cambiarEstadoTurno(turnoId, payload) {
 }
 
 export async function reprogramarTurno(turnoId, payload) {
-  const { data } = await axiosClient.post(`/api/turnos/${turnoId}/reprogramar`, payload);
+  const { data } = await axiosClient.patch(`/api/turnos/${turnoId}/reprogramar`, payload);
   return data;
 }
 

@@ -45,6 +45,7 @@ function obtenerClaseEstado(estado) {
     case "ALTA":
       return "sis-status sis-status-alta";
     case "AUSENTE":
+    case "DISPONIBLE":
     case "CANCELADO":
     case "REPROGRAMADO":
       return "sis-status sis-status-default";
@@ -70,6 +71,8 @@ function formatearEstado(estado) {
     case "CANCELADO":
       return "Cancelado";
     case "REPROGRAMADO":
+      return "DISPONIBLE";
+    case "Disponible":
       return "Reprogramado";
     default:
       return estado || "-";
@@ -255,7 +258,7 @@ export default function TurnosAdminConsultoriosTable() {
             className="sis-btn sis-btn-outline sis-btn-sm"
             onClick={() => handleImprimir(turno.turnoId)}
           >
-            Imprimir comprobante
+            Comprobante
           </button>
           <button
             className="sis-btn sis-btn-outline sis-btn-sm"
@@ -264,6 +267,15 @@ export default function TurnosAdminConsultoriosTable() {
           >
             Reprogramar
           </button>
+
+          <button
+            className="sis-btn sis-btn-outline sis-btn-sm"
+            disabled={procesandoId === turno.turnoId}
+            onClick={() => handleCambiarEstado(turno.turnoId, "AUSENTE")}
+          >
+            Ausente
+          </button>
+
           <button
             className="sis-btn sis-btn-outline sis-btn-sm"
             disabled={procesandoId === turno.turnoId}
@@ -362,6 +374,7 @@ export default function TurnosAdminConsultoriosTable() {
                 onChange={(e) => setFiltros((prev) => ({ ...prev, estado: e.target.value }))}
               >
                 <option value="">Todos</option>
+                <option value="DISPONIBLE">Disponible</option>
                 <option value="CITADO">Citado</option>
                 <option value="EN_ESPERA">En espera</option>
                 <option value="EN_ATENCION">En atención</option>
