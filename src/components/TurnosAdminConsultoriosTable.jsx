@@ -312,10 +312,7 @@ export default function TurnosAdminConsultoriosTable() {
     <div className="sis-page">
       <div className="sis-page-header">
         <div className="sis-page-title-wrap">
-          <h2 className="sis-page-title">Consultorios externos - Turnos del día</h2>
-          <p className="sis-page-subtitle">
-            Gestioná agendas, turnos y llegada de pacientes desde administración.
-          </p>
+          <h2 className="sis-page-title">Lista de pacientes en Consultorios externos</h2>
         </div>
 
         <div className="sis-page-actions">
@@ -340,20 +337,20 @@ export default function TurnosAdminConsultoriosTable() {
       <div className="sis-card" style={{ marginBottom: 16 }}>
         <div className="sis-card-body">
           <div className="sis-form-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
-            <div className="sis-form-field">
-              <label className="sis-label">Fecha</label>
+            <div className="sis-form-group">
+              <label className="sis-form-label">Fecha</label>
               <input
-                className="sis-input"
+                className="sis-form-control"
                 type="date"
                 value={filtros.fecha}
                 onChange={(e) => setFiltros((prev) => ({ ...prev, fecha: e.target.value }))}
               />
             </div>
 
-            <div className="sis-form-field">
-              <label className="sis-label">Agenda</label>
+            <div className="sis-form-group">
+              <label className="sis-form-label">Agenda</label>
               <select
-                className="sis-input"
+                className="sis-form-control"
                 value={filtros.agendaId}
                 onChange={(e) => setFiltros((prev) => ({ ...prev, agendaId: e.target.value }))}
               >
@@ -366,10 +363,10 @@ export default function TurnosAdminConsultoriosTable() {
               </select>
             </div>
 
-            <div className="sis-form-field">
-              <label className="sis-label">Estado</label>
+            <div className="sis-form-group">
+              <label className="sis-form-label">Estado</label>
               <select
-                className="sis-input"
+                className="sis-form-control"
                 value={filtros.estado}
                 onChange={(e) => setFiltros((prev) => ({ ...prev, estado: e.target.value }))}
               >
@@ -387,7 +384,7 @@ export default function TurnosAdminConsultoriosTable() {
             </div>
 
             <div className="sis-form-field">
-              <label className="sis-label">Resumen</label>
+              <label className="sis-form-label">Resumen</label>
               <div className="sis-text-muted" style={{ paddingTop: 10 }}>
                 Citados: {resumen.citados} · En espera: {resumen.enEspera} · Citas finalizadas: {resumen.finalizados}
               </div>
