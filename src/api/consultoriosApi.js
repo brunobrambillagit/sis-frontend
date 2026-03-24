@@ -24,7 +24,11 @@ export async function generarTurnosAgenda(agendaId, payload) {
 }
 
 export async function obtenerTurnosAdministrativo(params = {}) {
-  const { data } = await axiosClient.get("/api/turnos/dia", { params });
+  const usaFiltroAgenda = !!params?.agendaId;
+
+  const url = usaFiltroAgenda ? "/api/turnos/filtrar" : "/api/turnos/dia";
+
+  const { data } = await axiosClient.get(url, { params });
   return data;
 }
 

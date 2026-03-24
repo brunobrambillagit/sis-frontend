@@ -347,7 +347,7 @@ export default function TurnosAdminConsultoriosTable() {
               >
                 <option value="">Todas</option>
                 {agendas.map((agenda) => (
-                  <option key={agenda.agendaId} value={agenda.agendaId}>
+                  <option key={agenda.id} value={agenda.id}>
                     {agenda.nombre} - {agenda.especialidad}
                   </option>
                 ))}
@@ -421,8 +421,8 @@ export default function TurnosAdminConsultoriosTable() {
                       <td className="sis-cell-strong">{turno.turnoId}</td>
                       <td>{turno.fecha || "-"}</td>
                       <td>{formatearHora(turno.horaDesde)} - {formatearHora(turno.horaHasta)}</td>
-                      <td>{turno.pacienteNombre + ' ' + turno.pacienteApellido || "Libre"}</td>
-                      <td>{turno.pacienteDni || "-"}</td>
+                      <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}`: ""}</td>
+                      <td>{turno.pacienteDni || ""}</td>
                       <td>{turno.agendaNombre || "-"}</td>
                       <td>{turno.medicosAgenda || "-"}</td>
                       <td>
