@@ -4,6 +4,9 @@ import { obtenerCamasDisponiblesHospitalizacion } from "../../../api/camasApi";
 import { cambiarCamaEpisodio, obtenerEpisodiosActivos } from "../../../api/episodiosApi";
 import { useAuth } from "../../../context/AuthContext";
 import Header from "../../../components/Header";
+import ConfirmDialog from "../../../components/ConfirmDialog";
+import AlertDialog from "../../../components/AlertDialog";
+
 
 
 function obtenerRutaVolver(rol) {
@@ -14,13 +17,50 @@ export default function CambiarCamaHospitalizacion() {
   const { episodioId } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
-
+  const [modalConfirmacion, setModalConfirmacion] = useState({
+  abierto: false,
+  });
   const [episodio, setEpisodio] = useState(null);
   const [camas, setCamas] = useState([]);
   const [nuevaCamaId, setNuevaCamaId] = useState("");
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+
+  const [alerta, setAlerta] = useState({
+  abierta: false,
+  titulo: "",
+  mensaje: "",
+  tipo: "info",
+  redirect: false,
+});
+
+  const mostrarAlerta = ({ titulo, mensaje, tipo = "info", redirect = false }) => {
+    setAlerta({
+      abierta: true,
+      titulo,
+      mensaje,
+      tipo,
+      redirect,
+    });
+  };
+
+// 4) PARA CERRARLA
+  const cerrarAlerta = () => {
+    const debeRedirigir = alerta.redirect;
+
+    setAlerta({
+      abierta: false,
+      titulo: "",
+      mensaje: "",
+      tipo: "info",
+      redirect: false,
+    });
+
+    if (debeRedirigir) {
+      navigate(rutaVolver);
+    }
+  };
 
   const rutaVolver = useMemo(() => obtenerRutaVolver(usuario?.rol), [usuario?.rol]);
 
@@ -59,36 +99,64 @@ export default function CambiarCamaHospitalizacion() {
     cargarDatos();
   }, [episodioId]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = (e) => {
+  abrirConfirmacionCambioCama(e);
+};
 
-    if (!usuario?.id) {
-      alert("No se encontró el usuario logueado. Cerrá sesión e iniciá nuevamente.");
-      return;
-    }
+const abrirConfirmacionCambioCama = (e) => {
+  e.preventDefault();
 
-    if (!nuevaCamaId) {
-      alert("Debés seleccionar una nueva cama.");
-      return;
-    }
+  if (!usuario?.id) {
+    alert("No se encontró el usuario logueado. Cerrá sesión e iniciá nuevamente.");
+    return;
+  }
 
-    try {
-      setGuardando(true);
-      await cambiarCamaEpisodio(episodioId, Number(nuevaCamaId), usuario.id);
-      alert("La cama del paciente se actualizó correctamente.");
-      navigate(rutaVolver);
-    } catch (err) {
-      console.error(err);
-      const mensaje =
-        err?.response?.data?.message ||
-        err?.response?.data ||
-        "No se pudo realizar el cambio de cama.";
-      alert(mensaje);
-    } finally {
-      setGuardando(false);
-    }
-  };
+  if (!nuevaCamaId) {
+    alert("Debés seleccionar una nueva cama.");
+    return;
+  }
 
+  setModalConfirmacion({ abierto: true });
+};
+
+const cerrarConfirmacionCambioCama = () => {
+  if (guardando) return;
+  setModalConfirmacion({ abierto: false });
+};
+
+const confirmarCambioCama = async () => {
+  if (!usuario?.id) {
+    alert("No se encontró el usuario logueado. Cerrá sesión e iniciá nuevamente.");
+    return;
+  }
+
+  if (!nuevaCamaId) {
+    alert("Debés seleccionar una nueva cama.");
+    return;
+  }
+
+  try {
+    setGuardando(true);
+    await cambiarCamaEpisodio(episodioId, Number(nuevaCamaId), usuario.id);
+    cerrarConfirmacionCambioCama();
+    mostrarAlerta({
+      titulo: "Traslado realizado",
+      mensaje: "La cama del paciente se actualizó correctamente.",
+      tipo: "success",
+      redirect: true,
+    });
+  } catch (err) {
+    console.error(err);
+    const mensaje =
+      err?.response?.data?.message ||
+      err?.response?.data ||
+      "No se pudo realizar el cambio de cama.";
+    alert(mensaje);
+  } finally {
+    setGuardando(false);
+  }
+};
+  
   return (
     <><Header /> 
     <div className="sis-page">
@@ -173,6 +241,24 @@ export default function CambiarCamaHospitalizacion() {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={modalConfirmacion.abierto}
+        title="Confirmar cambio de cama"
+        message={`¿Realmente querés cambiar la cama ${episodio?.apellido || episodio?.nombre ? ` de ${episodio?.apellido || ""} ${episodio?.nombre || ""}`.trim() : ""}?`}
+        onConfirm={confirmarCambioCama}
+        onCancel={cerrarConfirmacionCambioCama}
+        confirmText="Sí, cambiar cama"
+        cancelText="No"
+        loading={guardando}
+      />
+      <AlertDialog
+        open={alerta.abierta}
+        title={alerta.titulo}
+        message={alerta.mensaje}
+        type={alerta.tipo}
+        onClose={cerrarAlerta}
+        buttonText="Aceptar"
+      />
     </div>
     </>
   );
