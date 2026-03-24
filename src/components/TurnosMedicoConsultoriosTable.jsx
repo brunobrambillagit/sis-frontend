@@ -254,7 +254,7 @@ export default function TurnosMedicoConsultoriosTable() {
 
           {!loading && !error && turnos.length === 0 && (
             <div className="sis-alert sis-alert-info" role="alert">
-              No hay pacientes para las agendas visibles del médico.
+              No hay pacientes cargados para las agendas habilitadas.
             </div>
           )}
 

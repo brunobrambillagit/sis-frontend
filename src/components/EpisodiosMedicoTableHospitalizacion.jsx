@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodiosApi";
 import { useAuth } from "../context/AuthContext";
@@ -58,6 +58,8 @@ export default function EpisodiosMedicoTableHospitalizacion({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [procesandoId, setProcesandoId] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [estadoFiltro, setEstadoFiltro] = useState("");
 
   const cargarDatos = async () => {
     try {
@@ -143,6 +145,35 @@ export default function EpisodiosMedicoTableHospitalizacion({
     return <span className="sis-text-muted">Sin acciones</span>;
   };
 
+  const episodiosFiltrados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+
+    return episodios.filter((ep) => {
+      const cumpleEstado = !estadoFiltro || ep.estadoAtencion === estadoFiltro;
+
+      if (!cumpleEstado) return false;
+
+      if (!texto) return true;
+
+      const dni = String(ep.dni || "").toLowerCase();
+      const apellido = String(ep.apellido || "").toLowerCase();
+      const nombre = String(ep.nombre || "").toLowerCase();
+      const cama = String(ep.camaCodigo || "").toLowerCase();
+
+      return (
+        dni.includes(texto) ||
+        apellido.includes(texto) ||
+        nombre.includes(texto) ||
+        cama.includes(texto)
+      );
+    });
+  }, [episodios, busqueda, estadoFiltro]);
+
+  const limpiarFiltros = () => {
+    setBusqueda("");
+    setEstadoFiltro("");
+  };
+
   return (
     <div className="sis-page">
       <div className="sis-page-header">
@@ -168,13 +199,69 @@ export default function EpisodiosMedicoTableHospitalizacion({
             </div>
           )}
 
+          {!loading && !error && (
+            <>
+              <div
+                className="sis-form-grid"
+                style={{ marginBottom: "1rem", alignItems: "end" }}
+              >
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Buscar paciente</label>
+                  <input
+                    className="sis-form-control"
+                    type="text"
+                    placeholder="Buscar por DNI, nombre, apellido o cama"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                  />
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Estado</label>
+                  <select
+                    className="sis-form-control"
+                    value={estadoFiltro}
+                    onChange={(e) => setEstadoFiltro(e.target.value)}
+                  >
+                    <option value="">Todos</option>
+                    <option value="EN_ESPERA">En espera</option>
+                    <option value="EN_ATENCION">En atención</option>
+                    <option value="FINALIZADO">Finalizado</option>
+                    <option value="ALTA">Alta</option>
+                  </select>
+                </div>
+
+                <div className="sis-form-field">
+                  <label className="sis-label">&nbsp;</label>
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={limpiarFiltros}
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
+              </div>
+
+              <div className="sis-text-muted" style={{ marginBottom: "1rem" }}>
+                Mostrando {episodiosFiltrados.length} de {episodios.length} pacientes
+              </div>
+            </>
+          )}
+
           {!loading && !error && episodios.length === 0 && (
             <div className="sis-alert sis-alert-info" role="alert">
               No hay pacientes activos en este servicio.
             </div>
           )}
 
-          {!loading && !error && episodios.length > 0 && (
+          {!loading && !error && episodios.length > 0 && episodiosFiltrados.length === 0 && (
+            <div className="sis-alert sis-alert-info" role="alert">
+              No se encontraron pacientes con los filtros aplicados.
+            </div>
+          )}
+
+          {!loading && !error && episodiosFiltrados.length > 0 && (
             <div className="sis-table-wrapper">
               <table className="sis-table">
                 <thead>
@@ -191,7 +278,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
                   </tr>
                 </thead>
                 <tbody>
-                  {episodios.map((ep) => (
+                  {episodiosFiltrados.map((ep) => (
                     <tr key={ep.episodioId}>
                       <td className="sis-cell-strong">{ep.episodioId}</td>
                       <td>{ep.dni || "-"}</td>
