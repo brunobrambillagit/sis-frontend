@@ -100,13 +100,12 @@ function imprimirComprobanteSimple(comprobante) {
         <h1>Comprobante de turno</h1>
         <div class="caja">
           <div class="fila"><span class="label">Paciente:</span> ${comprobante.pacienteNombreCompleto || "-"}</div>
-          <div class="fila"><span class="label">DNI:</span> ${comprobante.dni || "-"}</div>
+          <div class="fila"><span class="label">DNI:</span> ${comprobante.pacienteDni || "-"}</div>
           <div class="fila"><span class="label">Agenda:</span> ${comprobante.agendaNombre || "-"}</div>
           <div class="fila"><span class="label">Especialidad:</span> ${comprobante.especialidad || "-"}</div>
           <div class="fila"><span class="label">Fecha:</span> ${comprobante.fecha || "-"}</div>
-          <div class="fila"><span class="label">Hora:</span> ${formatearHora(comprobante.horaDesde)} - ${formatearHora(comprobante.horaHasta)}</div>
-          <div class="fila"><span class="label">Médico:</span> ${comprobante.medicoNombreCompleto || "-"}</div>
-          <div class="fila"><span class="label">Estado:</span> ${formatearEstado(comprobante.estadoTurno)}</div>
+          <div class="fila"><span class="label">Hora turno:</span> ${formatearHora(comprobante.horaDesde)} - ${formatearHora(comprobante.horaHasta)}</div>
+          <div class="fila"><span class="label">Médico:</span> ${comprobante.medicosAgenda || "-"}</div>
         </div>
         <script>
           window.onload = function() {
@@ -422,10 +421,10 @@ export default function TurnosAdminConsultoriosTable() {
                       <td className="sis-cell-strong">{turno.turnoId}</td>
                       <td>{turno.fecha || "-"}</td>
                       <td>{formatearHora(turno.horaDesde)} - {formatearHora(turno.horaHasta)}</td>
-                      <td>{turno.pacienteNombreCompleto || "Libre"}</td>
-                      <td>{turno.dni || "-"}</td>
+                      <td>{turno.pacienteNombre + ' ' + turno.pacienteApellido || "Libre"}</td>
+                      <td>{turno.pacienteDni || "-"}</td>
                       <td>{turno.agendaNombre || "-"}</td>
-                      <td>{turno.medicoNombreCompleto || "-"}</td>
+                      <td>{turno.medicosAgenda || "-"}</td>
                       <td>
                         <span className={obtenerClaseEstado(turno.estadoTurno)}>
                           {formatearEstado(turno.estadoTurno)}
