@@ -36,7 +36,7 @@ export async function obtenerTurnosMedico(medicoId, params = {}) {
 }
 
 export async function asignarPacienteATurno(turnoId, payload) {
-  const { data } = await axiosClient.post(`/api/turnos/${turnoId}/asignar-paciente`, payload);
+  const { data } = await axiosClient.patch(`/api/turnos/${turnoId}/asignar-paciente`, payload);
   return data;
 }
 
@@ -56,6 +56,11 @@ export async function obtenerComprobanteTurno(turnoId) {
 }
 
 export async function buscarPacientePorDni(dni) {
-  const { data } = await axiosClient.get(`/pacientes/${dni}`);
+  const { data } = await axiosClient.get(`/api/pacientes/${dni}`);
+  return data;
+}
+
+export async function obtenerMedicos() {
+  const { data } = await axiosClient.get("/api/usuarios/medicos");
   return data;
 }

@@ -78,7 +78,7 @@ export default function AdmisionConsultorios() {
   }, [form.agendaId, form.fecha]);
 
   const agendaSeleccionada = useMemo(
-    () => agendas.find((a) => String(a.agendaId) === String(form.agendaId)),
+    () => agendas.find((a) => String(a.id ?? a.agendaId) === String(form.agendaId)),
     [agendas, form.agendaId]
   );
 
@@ -215,18 +215,18 @@ export default function AdmisionConsultorios() {
               <div className="sis-form-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
                 <div className="sis-form-field">
                   <label className="sis-label">Agenda</label>
-                  <select
-                    className="sis-input"
-                    value={form.agendaId}
-                    onChange={(e) => setForm((prev) => ({ ...prev, agendaId: e.target.value, turnoId: "" }))}
-                  >
-                    <option value="">Seleccionar agenda</option>
-                    {agendas.map((agenda) => (
-                      <option key={agenda.agendaId} value={agenda.agendaId}>
-                        {agenda.nombre} - {agenda.especialidad}
-                      </option>
-                    ))}
-                  </select>
+                    <select
+                      className="sis-input"
+                      value={form.agendaId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, agendaId: e.target.value, turnoId: "" }))}
+                    >
+                      <option value="">Seleccionar agenda</option>
+                      {agendas.map((agenda) => (
+                        <option key={agenda.id ?? agenda.agendaId} value={agenda.id ?? agenda.agendaId}>
+                          {agenda.nombre} - {agenda.especialidad}
+                        </option>
+                      ))}
+                    </select>
                 </div>
 
                 <div className="sis-form-field">
