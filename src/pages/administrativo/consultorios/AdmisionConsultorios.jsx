@@ -153,10 +153,7 @@ export default function AdmisionConsultorios() {
       <div className="sis-page">
         <div className="sis-page-header">
           <div className="sis-page-title-wrap">
-            <h2 className="sis-page-title">Otorgar turno - Consultorios</h2>
-            <p className="sis-page-subtitle">
-              Seleccioná una agenda, elegí un bloque libre y asignalo a un paciente existente.
-            </p>
+            <h2 className="sis-page-title">Agendar un turno</h2>
           </div>
 
           <div className="sis-page-actions">
@@ -176,10 +173,10 @@ export default function AdmisionConsultorios() {
           <div className="sis-card-body">
             <form onSubmit={handleBuscarPaciente}>
               <div className="sis-form-grid" style={{ gridTemplateColumns: "2fr 1fr" }}>
-                <div className="sis-form-field">
-                  <label className="sis-label">DNI del paciente</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">DNI del paciente</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     type="text"
                     value={dniBusqueda}
                     onChange={(e) => setDniBusqueda(e.target.value)}
@@ -213,10 +210,10 @@ export default function AdmisionConsultorios() {
           <div className="sis-card-body">
             <form onSubmit={handleAsignarTurno}>
               <div className="sis-form-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-                <div className="sis-form-field">
-                  <label className="sis-label">Agenda</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Agenda</label>
                     <select
-                      className="sis-input"
+                      className="sis-form-control"
                       value={form.agendaId}
                       onChange={(e) => setForm((prev) => ({ ...prev, agendaId: e.target.value, turnoId: "" }))}
                     >
@@ -229,20 +226,20 @@ export default function AdmisionConsultorios() {
                     </select>
                 </div>
 
-                <div className="sis-form-field">
-                  <label className="sis-label">Fecha</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Fecha</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     type="date"
                     value={form.fecha}
                     onChange={(e) => setForm((prev) => ({ ...prev, fecha: e.target.value, turnoId: "" }))}
                   />
                 </div>
 
-                <div className="sis-form-field">
-                  <label className="sis-label">Turno disponible</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Turno disponible</label>
                   <select
-                    className="sis-input"
+                    className="sis-form-control"
                     value={form.turnoId}
                     onChange={(e) => setForm((prev) => ({ ...prev, turnoId: e.target.value }))}
                     disabled={!form.agendaId || loadingTurnos}

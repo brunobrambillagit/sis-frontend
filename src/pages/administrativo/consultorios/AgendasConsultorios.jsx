@@ -213,9 +213,6 @@ export default function AgendasConsultorios() {
         <div className="sis-page-header">
           <div className="sis-page-title-wrap">
             <h2 className="sis-page-title">Administración de agendas</h2>
-            <p className="sis-page-subtitle">
-              Creá agendas, asigná médicos con permiso y luego generá turnos por rango de fechas.
-            </p>
           </div>
 
           <div className="sis-page-actions">
@@ -240,17 +237,17 @@ export default function AgendasConsultorios() {
 
         <div className="sis-card" style={{ marginBottom: 16 }}>
           <div className="sis-card-body">
-            <h3 className="sis-section-title">Crear agenda</h3>
+            <h3 className="sis-page-title">Crear agenda</h3>
 
             <form onSubmit={handleCrearAgenda}>
               <div
                 className="sis-form-grid"
                 style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
               >
-                <div className="sis-form-field">
-                  <label className="sis-label">Nombre</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Nombre</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     value={formAgenda.nombre}
                     onChange={(e) =>
                       setFormAgenda((prev) => ({
@@ -263,10 +260,10 @@ export default function AgendasConsultorios() {
                   />
                 </div>
 
-                <div className="sis-form-field">
-                  <label className="sis-label">Especialidad</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Especialidad</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     value={formAgenda.especialidad}
                     onChange={(e) =>
                       setFormAgenda((prev) => ({
@@ -287,10 +284,10 @@ export default function AgendasConsultorios() {
                   marginTop: 16,
                 }}
               >
-                <div className="sis-form-field">
+                <div className="sis-form-group">
                   <label className="sis-label">Duración turno (min)</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     type="number"
                     min="5"
                     step="5"
@@ -307,7 +304,7 @@ export default function AgendasConsultorios() {
               </div>
 
               <div style={{ marginTop: 16 }}>
-                <h4 className="sis-section-subtitle">Médicos con permiso</h4>
+                <h4 className="sis-page-title2">Médicos con permiso</h4>
 
                 {loadingMedicos && (
                   <div className="sis-loading-state">Cargando médicos...</div>
@@ -362,7 +359,7 @@ export default function AgendasConsultorios() {
               </div>
 
               <div style={{ marginTop: 16 }}>
-                <h4 className="sis-section-subtitle">Días y horarios de atención</h4>
+                <h4 className="sis-page-title">Días y horarios de atención</h4>
 
                 {formAgenda.diasAtencion.map((dia, index) => (
                   <div
@@ -374,10 +371,10 @@ export default function AgendasConsultorios() {
                       alignItems: "end",
                     }}
                   >
-                    <div className="sis-form-field">
-                      <label className="sis-label">Día</label>
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Día</label>
                       <select
-                        className="sis-input"
+                        className="sis-form-control"
                         value={dia.diaSemana}
                         onChange={(e) =>
                           handleDiaChange(index, "diaSemana", e.target.value)
@@ -391,10 +388,10 @@ export default function AgendasConsultorios() {
                       </select>
                     </div>
 
-                    <div className="sis-form-field">
-                      <label className="sis-label">Hora inicio</label>
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Hora inicio</label>
                       <input
-                        className="sis-input"
+                        className="sis-form-control"
                         type="time"
                         value={dia.horaInicio}
                         onChange={(e) =>
@@ -404,10 +401,10 @@ export default function AgendasConsultorios() {
                       />
                     </div>
 
-                    <div className="sis-form-field">
-                      <label className="sis-label">Hora fin</label>
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Hora fin</label>
                       <input
-                        className="sis-input"
+                        className="sis-form-control"
                         type="time"
                         value={dia.horaFin}
                         onChange={(e) =>
@@ -452,17 +449,17 @@ export default function AgendasConsultorios() {
 
         <div className="sis-card" style={{ marginBottom: 16 }}>
           <div className="sis-card-body">
-            <h3 className="sis-section-title">Generar turnos por rango</h3>
+            <h3 className="sis-page-title">Generar turnos por rango</h3>
 
             <form onSubmit={handleGenerarTurnos}>
               <div
                 className="sis-form-grid"
                 style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
               >
-                <div className="sis-form-field">
-                  <label className="sis-label">Agenda</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Agenda</label>
                   <select
-                    className="sis-input"
+                    className="sis-form-control"
                     value={formGeneracion.agendaId}
                     onChange={(e) =>
                       setFormGeneracion((prev) => ({
@@ -484,10 +481,10 @@ export default function AgendasConsultorios() {
                   </select>
                 </div>
 
-                <div className="sis-form-field">
-                  <label className="sis-label">Fecha desde</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Fecha desde</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     type="date"
                     value={formGeneracion.fechaDesde}
                     onChange={(e) =>
@@ -500,10 +497,10 @@ export default function AgendasConsultorios() {
                   />
                 </div>
 
-                <div className="sis-form-field">
-                  <label className="sis-label">Fecha hasta</label>
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Fecha hasta</label>
                   <input
-                    className="sis-input"
+                    className="sis-form-control"
                     type="date"
                     value={formGeneracion.fechaHasta}
                     onChange={(e) =>
@@ -532,7 +529,7 @@ export default function AgendasConsultorios() {
 
         <div className="sis-card">
           <div className="sis-card-body">
-            <h3 className="sis-section-title">Agendas creadas</h3>
+            <h3 className="sis-page-title">Agendas creadas</h3>
 
             {loading && <div className="sis-loading-state">Cargando agendas...</div>}
 
@@ -550,7 +547,7 @@ export default function AgendasConsultorios() {
                       <th>ID</th>
                       <th>Nombre</th>
                       <th>Especialidad</th>
-                      <th>Duración</th>
+                      <th>Duración turnos</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,7 +558,7 @@ export default function AgendasConsultorios() {
                         </td>
                         <td>{agenda.nombre}</td>
                         <td>{agenda.especialidad}</td>
-                        <td>{agenda.duracionTurnoMinutos} min</td>
+                        <td>{agenda.duracionTurnoMinutos} minutos</td>
                       </tr>
                     ))}
                   </tbody>

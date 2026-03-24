@@ -329,7 +329,7 @@ export default function TurnosAdminConsultoriosTable() {
             className="sis-btn sis-btn-primary"
             onClick={() => navigate("/administrativo/consultorios/admision")}
           >
-            Otorgar turno
+            Agenda turno
           </button>
         </div>
       </div>
@@ -383,12 +383,12 @@ export default function TurnosAdminConsultoriosTable() {
               </select>
             </div>
 
-            <div className="sis-form-field">
+            {/* <div className="sis-form-field">
               <label className="sis-form-label">Resumen</label>
               <div className="sis-text-muted" style={{ paddingTop: 10 }}>
                 Citados: {resumen.citados} · En espera: {resumen.enEspera} · Citas finalizadas: {resumen.finalizados}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
