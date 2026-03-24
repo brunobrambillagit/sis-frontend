@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../components/Header";
 import { useAuth } from "../../context/AuthContext";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import {
   agregarEvolucionEpisodio,
   agregarObservacionEpisodio,
@@ -61,6 +62,11 @@ export default function EpisodioDetalle() {
     estudiosSolicitados: "",
   });
   const [guardandoEvolucion, setGuardandoEvolucion] = useState(false);
+
+  const [evolucionesAbiertas, setEvolucionesAbiertas] = useState({});
+  const [modalConfirmacionEvolucion, setModalConfirmacionEvolucion] = useState({
+    abierto: false,
+  });
 
   const cargarDetalle = async () => {
     try {
@@ -123,7 +129,7 @@ export default function EpisodioDetalle() {
     }));
   };
 
-  const handleGuardarEvolucion = async (e) => {
+  const abrirConfirmacionGuardarEvolucion = (e) => {
     e.preventDefault();
 
     if (!usuario?.id) {
@@ -138,6 +144,20 @@ export default function EpisodioDetalle() {
       !formEvolucion.estudiosSolicitados.trim()
     ) {
       alert("Completá al menos un campo de la evolución.");
+      return;
+    }
+
+    setModalConfirmacionEvolucion({ abierto: true });
+  };
+
+  const cerrarConfirmacionGuardarEvolucion = () => {
+    if (guardandoEvolucion) return;
+    setModalConfirmacionEvolucion({ abierto: false });
+  };
+
+  const confirmarGuardarEvolucion = async () => {
+    if (!usuario?.id) {
+      alert("No se encontró el usuario logueado.");
       return;
     }
 
@@ -159,6 +179,7 @@ export default function EpisodioDetalle() {
         estudiosSolicitados: "",
       });
 
+      cerrarConfirmacionGuardarEvolucion();
       await cargarDetalle();
     } catch (err) {
       console.error(err);
@@ -170,6 +191,13 @@ export default function EpisodioDetalle() {
     } finally {
       setGuardandoEvolucion(false);
     }
+  };
+
+  const toggleEvolucion = (evolucionId) => {
+    setEvolucionesAbiertas((prev) => ({
+      ...prev,
+      [evolucionId]: !prev[evolucionId],
+    }));
   };
 
   return (
@@ -251,14 +279,14 @@ export default function EpisodioDetalle() {
                   </div>
 
                   <div className="sis-detail-item">
-                    <span className="sis-detail-label">Fecha de ingreso</span>
+                    <span className="sis-detail-label">Fecha y hora de ingreso</span>
                     <div className="sis-detail-value">
                       {formatearFecha(detalle.fechaIngreso)}
                     </div>
                   </div>
 
                   <div className="sis-detail-item">
-                    <span className="sis-detail-label">Fecha de egreso</span>
+                    <span className="sis-detail-label">Fecha y hora de egreso</span>
                     <div className="sis-detail-value">
                       {formatearFecha(detalle.fechaEgreso)}
                     </div>
@@ -358,7 +386,7 @@ export default function EpisodioDetalle() {
               </div>
 
               <div className="sis-card-body">
-                <form onSubmit={handleGuardarEvolucion} className="sis-form">
+                <form onSubmit={abrirConfirmacionGuardarEvolucion} className="sis-form">
                   <div className="sis-form-grid">
                     <div className="sis-form-group">
                       <label className="sis-form-label">Diagnóstico/s</label>
@@ -416,7 +444,7 @@ export default function EpisodioDetalle() {
                     className="sis-btn sis-btn-success"
                     disabled={guardandoEvolucion}
                   >
-                    {guardandoEvolucion ? "Guardando..." : "Guardar evolución"}
+                    {guardandoEvolucion ? "Guardando..." : "Firmar evolucion"}
                   </button>
                 </form>
               </div>
@@ -432,52 +460,68 @@ export default function EpisodioDetalle() {
                   <p className="sis-text-muted mb-0">No hay evoluciones registradas.</p>
                 ) : (
                   <div className="sis-timeline">
-                    {detalle.evoluciones.map((ev) => (
-                      <article key={ev.id} className="sis-timeline-item">
-                        <div className="sis-timeline-head">
-                          <strong className="sis-timeline-user">
-                            {ev.nombreUsuario || "Usuario"}
-                          </strong>
-                          <span className="sis-timeline-date">
-                            {formatearFecha(ev.fechaRegistro)}
-                          </span>
-                        </div>
+                    {detalle.evoluciones.map((ev) => {
+                      const abierta = !!evolucionesAbiertas[ev.id];
 
-                        <div className="sis-evolution-grid">
-                          <div className="sis-evolution-block">
-                            <span className="sis-detail-label">Diagnóstico/s</span>
-                            <div className="sis-detail-value">
-                              {ev.diagnosticos || "-"}
-                            </div>
-                          </div>
-
-                          <div className="sis-evolution-block">
-                            <span className="sis-detail-label">Evolución</span>
-                            <div className="sis-detail-value">
-                              {ev.evolucion || "-"}
-                            </div>
-                          </div>
-
-                          <div className="sis-evolution-block">
-                            <span className="sis-detail-label">
-                              Medicación / indicaciones
+                      return (
+                        <article key={ev.id} className="sis-timeline-item">
+                          <button
+                            type="button"
+                            className="sis-btn sis-btn-outline"
+                            onClick={() => toggleEvolucion(ev.id)}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              textAlign: "left",
+                              marginBottom: abierta ? "1rem" : 0,
+                            }}
+                          >
+                            <span>
+                              {formatearFecha(ev.fechaRegistro)} - {ev.nombreUsuario || "Usuario"}
                             </span>
-                            <div className="sis-detail-value">
-                              {ev.medicacionIndicaciones || "-"}
-                            </div>
-                          </div>
+                            <span>{abierta ? "Ocultar" : "Ver detalle"}</span>
+                          </button>
 
-                          <div className="sis-evolution-block">
-                            <span className="sis-detail-label">
-                              Estudios / solicitud de estudios
-                            </span>
-                            <div className="sis-detail-value">
-                              {ev.estudiosSolicitados || "-"}
+                          {abierta && (
+                            <div className="sis-evolution-grid">
+                              <div className="sis-evolution-block">
+                                <span className="sis-detail-label">Diagnóstico/s</span>
+                                <div className="sis-detail-value">
+                                  {ev.diagnosticos || "-"}
+                                </div>
+                              </div>
+
+                              <div className="sis-evolution-block">
+                                <span className="sis-detail-label">Evolución</span>
+                                <div className="sis-detail-value">
+                                  {ev.evolucion || "-"}
+                                </div>
+                              </div>
+
+                              <div className="sis-evolution-block">
+                                <span className="sis-detail-label">
+                                  Medicación / indicaciones
+                                </span>
+                                <div className="sis-detail-value">
+                                  {ev.medicacionIndicaciones || "-"}
+                                </div>
+                              </div>
+
+                              <div className="sis-evolution-block">
+                                <span className="sis-detail-label">
+                                  Estudios / solicitud de estudios
+                                </span>
+                                <div className="sis-detail-value">
+                                  {ev.estudiosSolicitados || "-"}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
+                          )}
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -485,6 +529,17 @@ export default function EpisodioDetalle() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={modalConfirmacionEvolucion.abierto}
+        title="Confirmar guardado de evolución"
+        message="¿Realmente querés firmar y guardar esta evolucion?"
+        onConfirm={confirmarGuardarEvolucion}
+        onCancel={cerrarConfirmacionGuardarEvolucion}
+        confirmText="Sí, guardar"
+        cancelText="No"
+        loading={guardandoEvolucion}
+      />
     </>
   );
 }
