@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodiosApi";
 import { useAuth } from "../context/AuthContext";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function formatearFecha(fecha) {
   if (!fecha) return "-";
@@ -60,6 +61,11 @@ export default function EpisodiosMedicoTableHospitalizacion({
   const [procesandoId, setProcesandoId] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [modalConfirmacion, setModalConfirmacion] = useState({
+    abierto: false,
+    episodioId: null,
+    nombrePaciente: "",
+  });
 
   const cargarDatos = async () => {
     try {
@@ -101,6 +107,31 @@ export default function EpisodiosMedicoTableHospitalizacion({
     }
   };
 
+  const abrirConfirmacionFinalizar = (ep) => {
+    setModalConfirmacion({
+      abierto: true,
+      episodioId: ep.episodioId,
+      nombrePaciente: `${ep.apellido || ""} ${ep.nombre || ""}`.trim(),
+    });
+  };
+
+  const cerrarConfirmacionFinalizar = () => {
+    if (procesandoId) return;
+
+    setModalConfirmacion({
+      abierto: false,
+      episodioId: null,
+      nombrePaciente: "",
+    });
+  };
+
+  const confirmarFinalizacion = async () => {
+    if (!modalConfirmacion.episodioId) return;
+
+    await handleCambioEstado(modalConfirmacion.episodioId, "FINALIZADO");
+    cerrarConfirmacionFinalizar();
+  };
+
   const renderAccionesEstado = (ep) => {
     if (usuario?.rol !== "medico") {
       return <span className="sis-text-muted">Sin acciones</span>;
@@ -113,7 +144,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
           disabled={procesandoId === ep.episodioId}
           onClick={() => handleCambioEstado(ep.episodioId, "EN_ATENCION")}
         >
-          {procesandoId === ep.episodioId ? "Procesando..." : "Tomar paciente"}
+          {procesandoId === ep.episodioId ? "Procesando..." : "Habilitar evolucion"}
         </button>
       );
     }
@@ -123,7 +154,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
         <button
           className="sis-btn sis-btn-warning sis-btn-sm"
           disabled={procesandoId === ep.episodioId}
-          onClick={() => handleCambioEstado(ep.episodioId, "FINALIZADO")}
+          onClick={() => abrirConfirmacionFinalizar(ep)}
         >
           {procesandoId === ep.episodioId ? "Procesando..." : "Finalizar atención"}
         </button>
@@ -274,7 +305,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
                     <th>Estado</th>
                     <th>Fecha ingreso</th>
                     <th>Acciones clínicas</th>
-                    <th>Detalle</th>
+                    <th>Evolucion medica</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -318,7 +349,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
                             className="sis-btn sis-btn-outline sis-btn-sm"
                             onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
                           >
-                            Abrir episodio
+                            Evolucionar
                           </button>
                         </div>
                       </td>
@@ -330,6 +361,17 @@ export default function EpisodiosMedicoTableHospitalizacion({
           )}
         </div>
       </div>
+
+                  <ConfirmDialog
+                    open={modalConfirmacion.abierto}
+                    title="Confirmar finalizacion "
+                    message={`¿Realmente querés finalizar la evolucion${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
+                    onConfirm={confirmarFinalizacion}
+                    onCancel={cerrarConfirmacionFinalizar}
+                    confirmText="Sí, finalizar"
+                    cancelText="No"
+                    loading={procesandoId === modalConfirmacion.turnoId}
+                  />
     </div>
   );
 }

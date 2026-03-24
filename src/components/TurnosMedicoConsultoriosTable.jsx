@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cambiarEstadoTurno, obtenerAgendasMedico, obtenerTurnosMedico } from "../api/consultoriosApi";
 import { useAuth } from "../context/AuthContext";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function hoyISO() {
   return new Date().toISOString().slice(0, 10);
@@ -57,6 +58,19 @@ export default function TurnosMedicoConsultoriosTable() {
     fecha: hoyISO(),
     agendaId: "",
   });
+  const [modalConfirmacion, setModalConfirmacion] = useState({
+    abierto: false,
+    turnoId: null,
+    nombrePaciente: "",
+  });
+
+  const abrirConfirmacionFinalizar = (turno) => {
+  setModalConfirmacion({
+    abierto: true,
+    turnoId: turno.turnoId,
+    nombrePaciente: `${turno.pacienteNombre || ""} ${turno.pacienteApellido || ""}`.trim(),
+  });
+};
 
   const cargarAgendas = async () => {
     if (!usuario?.id) return;
@@ -66,6 +80,23 @@ export default function TurnosMedicoConsultoriosTable() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const confirmarFinalizacion = async () => {
+    if (!modalConfirmacion.turnoId) return;
+
+    await handleCambioEstado({turnoId: modalConfirmacion.turnoId}, "FINALIZADO");
+    cerrarConfirmacionFinalizar();
+  };
+
+  const cerrarConfirmacionFinalizar = () => {
+    if (procesandoId) return;
+
+    setModalConfirmacion({
+      abierto: false,
+      episodioId: null,
+      nombrePaciente: "",
+    });
   };
 
   const cargarTurnos = async () => {
@@ -162,7 +193,7 @@ export default function TurnosMedicoConsultoriosTable() {
           <button
             className="sis-btn sis-btn-warning sis-btn-sm"
             disabled={procesandoId === turno.turnoId}
-            onClick={() => handleCambioEstado(turno, "FINALIZADO")}
+            onClick={() => abrirConfirmacionFinalizar(turno)}
           >
             {procesandoId === turno.turnoId ? "Procesando..." : "Finalizar atención"}
           </button>
@@ -296,6 +327,16 @@ export default function TurnosMedicoConsultoriosTable() {
           )}
         </div>
       </div>
+                        <ConfirmDialog
+                          open={modalConfirmacion.abierto}
+                          title="Confirmar finalizacion"
+                          message={`¿Realmente querés finalizar la evolucion${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
+                          onConfirm={confirmarFinalizacion}
+                          onCancel={cerrarConfirmacionFinalizar}
+                          confirmText="Sí, finalizar"
+                          cancelText="No"
+                          loading={procesandoId === modalConfirmacion.turnoId}
+                        />
     </div>
   );
 }

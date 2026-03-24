@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodiosApi";
 import { useAuth } from "../context/AuthContext";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function formatearFecha(fecha) {
   if (!fecha) return "-";
@@ -57,6 +58,11 @@ export default function EpisodiosActivosTableHospitalizacion() {
   const [procesandoId, setProcesandoId] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [modalConfirmacion, setModalConfirmacion] = useState({
+    abierto: false,
+    episodioId: null,
+    nombrePaciente: "",
+  });
 
   const cargarDatos = async () => {
     try {
@@ -96,6 +102,31 @@ export default function EpisodiosActivosTableHospitalizacion() {
     } finally {
       setProcesandoId(null);
     }
+  };
+
+  const abrirConfirmacionAlta = (ep) => {
+    setModalConfirmacion({
+      abierto: true,
+      episodioId: ep.episodioId,
+      nombrePaciente: `${ep.apellido || ""} ${ep.nombre || ""}`.trim(),
+    });
+  };
+
+  const cerrarConfirmacionAlta = () => {
+    if (procesandoId) return;
+
+    setModalConfirmacion({
+      abierto: false,
+      episodioId: null,
+      nombrePaciente: "",
+    });
+  };
+
+  const confirmarAlta = async () => {
+    if (!modalConfirmacion.episodioId) return;
+
+    await handleAlta(modalConfirmacion.episodioId);
+    cerrarConfirmacionAlta();
   };
 
   const handleCambiarCama = (episodioId) => {
@@ -287,7 +318,7 @@ export default function EpisodiosActivosTableHospitalizacion() {
                             <button
                               className="sis-btn sis-btn-success sis-btn-sm"
                               disabled={procesandoId === ep.episodioId}
-                              onClick={() => handleAlta(ep.episodioId)}
+                              onClick={() => abrirConfirmacionAlta(ep)}
                             >
                               {procesandoId === ep.episodioId ? "Procesando..." : "Dar alta"}
                             </button>
@@ -306,6 +337,16 @@ export default function EpisodiosActivosTableHospitalizacion() {
           )}
         </div>
       </div>
+            <ConfirmDialog
+              open={modalConfirmacion.abierto}
+              title="Confirmar alta"
+              message={`¿Realmente querés dar el alta${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
+              onConfirm={confirmarAlta}
+              onCancel={cerrarConfirmacionAlta}
+              confirmText="Sí, finalizar"
+              cancelText="No"
+              loading={procesandoId === modalConfirmacion.turnoId}
+            />
     </div>
   );
 }

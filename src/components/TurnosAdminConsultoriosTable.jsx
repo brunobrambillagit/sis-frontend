@@ -8,6 +8,7 @@ import {
   reprogramarTurno,
 } from "../api/consultoriosApi";
 import { useAuth } from "../context/AuthContext";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function hoyISO() {
   return new Date().toISOString().slice(0, 10);
@@ -136,6 +137,37 @@ export default function TurnosAdminConsultoriosTable() {
     estado: "",
   });
 
+  const [modalConfirmacion, setModalConfirmacion] = useState({
+    abierto: false,
+    turnoId: null,
+    nombrePaciente: "",
+  });
+
+  const abrirConfirmacionAlta = (turno) => {
+    setModalConfirmacion({
+      abierto: true,
+      turnoId: turno.turnoId,
+      nombrePaciente: `${turno.pacienteNombre || ""} ${turno.pacienteApellido || ""}`.trim(),
+    });
+  };
+
+  const cerrarConfirmacionAlta = () => {
+    if (procesandoId) return;
+
+    setModalConfirmacion({
+      abierto: false,
+      turnoId: null,
+      nombrePaciente: "",
+    });
+  };
+
+  const confirmarAlta = async () => {
+    if (!modalConfirmacion.turnoId) return;
+
+    await handleCambiarEstado(modalConfirmacion.turnoId, "ALTA");
+    cerrarConfirmacionAlta();
+  };
+
   const cargarAgendas = async () => {
     try {
       const data = await obtenerAgendas();
@@ -254,12 +286,14 @@ export default function TurnosAdminConsultoriosTable() {
           >
             {procesandoId === turno.turnoId ? "Procesando..." : "Registrar llegada"}
           </button>
+
           <button
             className="sis-btn sis-btn-outline sis-btn-sm"
             onClick={() => handleImprimir(turno.turnoId)}
           >
             Comprobante
           </button>
+
           <button
             className="sis-btn sis-btn-outline sis-btn-sm"
             disabled={procesandoId === turno.turnoId}
@@ -293,7 +327,7 @@ export default function TurnosAdminConsultoriosTable() {
           <button
             className="sis-btn sis-btn-success sis-btn-sm"
             disabled={procesandoId === turno.turnoId}
-            onClick={() => handleCambiarEstado(turno.turnoId, "ALTA")}
+            onClick={() => abrirConfirmacionAlta(turno)}
           >
             {procesandoId === turno.turnoId ? "Procesando..." : "Cita finalizada"}
           </button>
@@ -319,12 +353,14 @@ export default function TurnosAdminConsultoriosTable() {
           <button className="sis-btn sis-btn-outline" onClick={cargarTurnos}>
             Actualizar listado
           </button>
+
           <button
             className="sis-btn sis-btn-outline"
             onClick={() => navigate("/administrativo/consultorios/agendas")}
           >
             Administrar agendas
           </button>
+
           <button
             className="sis-btn sis-btn-primary"
             onClick={() => navigate("/administrativo/consultorios/admision")}
@@ -431,7 +467,7 @@ export default function TurnosAdminConsultoriosTable() {
                       <td className="sis-cell-strong">{turno.turnoId}</td>
                       <td>{turno.fecha || "-"}</td>
                       <td>{formatearHora(turno.horaDesde)} - {formatearHora(turno.horaHasta)}</td>
-                      <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}`: ""}</td>
+                      <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}` : ""}</td>
                       <td>{turno.pacienteDni || ""}</td>
                       <td>{turno.agendaNombre || "-"}</td>
                       <td>{turno.medicosAgenda || "-"}</td>
@@ -449,6 +485,17 @@ export default function TurnosAdminConsultoriosTable() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={modalConfirmacion.abierto}
+        title="Confirmar finalización de cita"
+        message={`¿Realmente querés finalizar la cita${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
+        onConfirm={confirmarAlta}
+        onCancel={cerrarConfirmacionAlta}
+        confirmText="Sí, finalizar"
+        cancelText="No"
+        loading={procesandoId === modalConfirmacion.turnoId}
+      />
     </div>
   );
 }
