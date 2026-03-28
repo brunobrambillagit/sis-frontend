@@ -355,6 +355,13 @@ export default function TurnosAdminConsultoriosTable() {
           </button>
 
           <button
+          className="sis-btn sis-btn-outline"
+          onClick={() => navigate("/administrativo/guardia/crear-paciente")}
+        >
+          Crear paciente
+        </button>
+
+          <button
             className="sis-btn sis-btn-outline"
             onClick={() => navigate("/administrativo/consultorios/agendas")}
           >
