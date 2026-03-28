@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { crearPaciente, obtenerPacientePorDni, actualizarPacientePorDni } from "../../api/pacientesApi";
+import {
+  crearPaciente,
+  obtenerPacientePorDni,
+  actualizarPacientePorDni,
+} from "../../api/pacientesApi";
+import AltaPacienteAccordion from "../../components/AltaPacienteAccordion";
+import BloqueVerificacionPaciente from "../../components/BloqueVerificacionPaciente";
+import BloqueDatosPaciente from "../../components/BloqueDatosPaciente";
+import BloqueBiometriaPaciente from "../../components/BloqueBiometriaPaciente";
+import BloqueResumenAltaPaciente from "../../components/BloqueResumenAltaPaciente";
 
 const initialForm = {
   dni: "",
@@ -10,6 +19,21 @@ const initialForm = {
   edad: "",
   sexo: "",
   estadoPersona: "VIVO",
+};
+
+const initialBiometria = {
+  rostro: {
+    estado: "pendiente", // pendiente | cargado | error
+    archivo: null,
+    vistaPrevia: "",
+    observacion: "",
+  },
+  huella: {
+    estado: "pendiente", // pendiente | cargado | error
+    archivo: null,
+    vistaPrevia: "",
+    observacion: "",
+  },
 };
 
 function limpiarDni(value) {
@@ -77,14 +101,14 @@ function parseBackendMessage(err) {
 
 export default function AltaPaciente({
   titulo = "Crear paciente",
-  subtitulo = "Buscá un paciente por DNI y, si no existe, registralo.",
+  subtitulo = "Verificá si el paciente existe, completá los datos y registrá biometría si está disponible.",
   textoExitoCreacion = "Paciente creado correctamente.",
-  redirectOnSuccess,
-  onIrAAdmitirPaciente,
 }) {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(initialForm);
+  const [biometria, setBiometria] = useState(initialBiometria);
+
   const [modo, setModo] = useState("idle");
   // idle | encontrado | nuevo
 
@@ -99,10 +123,19 @@ export default function AltaPaciente({
   const [warningMsg, setWarningMsg] = useState("");
   const [nroHistoriaClinica, setNroHistoriaClinica] = useState(null);
 
+  const [openSections, setOpenSections] = useState({
+    verificacion: true,
+    datos: false,
+    biometria: false,
+    resumen: false,
+  });
+
   const disabledGeneral = useMemo(
     () => loadingBuscar || loadingCrear,
     [loadingBuscar, loadingCrear]
   );
+
+  const pacienteMostrado = pacienteCreado || pacienteEncontrado;
 
   const resetAlerts = () => {
     setErrorMsg("");
@@ -112,10 +145,17 @@ export default function AltaPaciente({
 
   const resetTodo = () => {
     setForm(initialForm);
+    setBiometria(initialBiometria);
     setModo("idle");
     setPacienteEncontrado(null);
     setPacienteCreado(null);
     setNroHistoriaClinica(null);
+    setOpenSections({
+      verificacion: true,
+      datos: false,
+      biometria: false,
+      resumen: false,
+    });
     resetAlerts();
   };
 
@@ -128,6 +168,22 @@ export default function AltaPaciente({
       edad: paciente?.edad ?? "",
       sexo: paciente?.sexo || "",
       estadoPersona: paciente?.estadoPersona || "VIVO",
+    });
+  };
+
+  const setSectionOpen = (sectionKey, nextValue) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [sectionKey]: typeof nextValue === "boolean" ? nextValue : !prev[sectionKey],
+    }));
+  };
+
+  const expandirFlujoAlta = () => {
+    setOpenSections({
+      verificacion: true,
+      datos: true,
+      biometria: true,
+      resumen: true,
     });
   };
 
@@ -157,6 +213,47 @@ export default function AltaPaciente({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const actualizarEstadoBiometria = (tipo, cambios) => {
+    setBiometria((prev) => ({
+      ...prev,
+      [tipo]: {
+        ...prev[tipo],
+        ...cambios,
+      },
+    }));
+  };
+
+  const manejarArchivoBiometrico = (tipo, file) => {
+    if (!file) {
+      actualizarEstadoBiometria(tipo, {
+        archivo: null,
+        vistaPrevia: "",
+        estado: "pendiente",
+      });
+      return;
+    }
+
+    const vistaPrevia = file.type?.startsWith("image/")
+      ? URL.createObjectURL(file)
+      : "";
+
+    actualizarEstadoBiometria(tipo, {
+      archivo: file,
+      vistaPrevia,
+      estado: "cargado",
+      observacion: "",
+    });
+  };
+
+  const limpiarBiometria = (tipo) => {
+    actualizarEstadoBiometria(tipo, {
+      archivo: null,
+      vistaPrevia: "",
+      estado: "pendiente",
+      observacion: "",
+    });
+  };
+
   const buscarPorDni = async () => {
     resetAlerts();
     setNroHistoriaClinica(null);
@@ -170,6 +267,7 @@ export default function AltaPaciente({
     }
 
     setLoadingBuscar(true);
+
     try {
       const paciente = await obtenerPacientePorDni(dniLimpio);
       setPacienteEncontrado(paciente);
@@ -177,6 +275,13 @@ export default function AltaPaciente({
       setSuccessMsg("El paciente ya existe en el sistema.");
       cargarPacienteEnFormulario(paciente);
       setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
+
+      setOpenSections({
+        verificacion: true,
+        datos: true,
+        biometria: false,
+        resumen: false,
+      });
     } catch (err) {
       const status = err?.response?.status;
       const msg = parseBackendMessage(err);
@@ -185,6 +290,7 @@ export default function AltaPaciente({
         setModo("nuevo");
         setForm((prev) => ({ ...prev, dni: dniLimpio }));
         setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
+        expandirFlujoAlta();
         return;
       }
 
@@ -194,8 +300,7 @@ export default function AltaPaciente({
     }
   };
 
-  const crearNuevoPaciente = async (e) => {
-    e.preventDefault();
+  const crearNuevoPaciente = async () => {
     resetAlerts();
     setNroHistoriaClinica(null);
     setPacienteCreado(null);
@@ -223,6 +328,7 @@ export default function AltaPaciente({
     }
 
     setLoadingCrear(true);
+
     try {
       const payloadCrear = {
         dni: dniLimpio,
@@ -244,7 +350,10 @@ export default function AltaPaciente({
       let pacienteFinal = creadoBase;
 
       try {
-        pacienteFinal = await actualizarPacientePorDni(dniLimpio, payloadActualizacion);
+        pacienteFinal = await actualizarPacientePorDni(
+          dniLimpio,
+          payloadActualizacion
+        );
       } catch (errUpdate) {
         pacienteFinal = creadoBase;
         setWarningMsg(
@@ -259,10 +368,21 @@ export default function AltaPaciente({
       setNroHistoriaClinica(
         pacienteFinal?.nroHistoriaClinica || creadoBase?.nroHistoriaClinica || null
       );
+
       cargarPacienteEnFormulario({
         ...pacienteFinal,
         dni: pacienteFinal?.dni || dniLimpio,
       });
+
+      setOpenSections({
+        verificacion: true,
+        datos: true,
+        biometria: true,
+        resumen: true,
+      });
+
+      // En esta primera etapa frontend no se persiste biometría en backend.
+      // Queda la estructura visual y el estado local listos para la integración futura.
     } catch (err) {
       const status = err?.response?.status;
       const msg = parseBackendMessage(err);
@@ -279,7 +399,12 @@ export default function AltaPaciente({
     }
   };
 
-  const pacienteMostrado = pacienteCreado || pacienteEncontrado;
+  const puedeCrearPaciente =
+    modo === "nuevo" &&
+    !disabledGeneral &&
+    limpiarDni(form.dni) &&
+    form.nombre.trim() &&
+    form.apellido.trim();
 
   return (
     <div className="sis-page">
@@ -315,223 +440,84 @@ export default function AltaPaciente({
       {successMsg && (
         <div className="sis-alert sis-alert-success" role="alert">
           <div>{successMsg}</div>
+
           {nroHistoriaClinica && (
             <div className="mt-2">
               <strong>N° Historia Clínica:</strong> {nroHistoriaClinica}
-            </div>
-          )}
-
-          {modo === "encontrado" && pacienteEncontrado && onIrAAdmitirPaciente && (
-            <div className="mt-3">
-              <button
-                type="button"
-                className="sis-btn sis-btn-outline"
-                onClick={onIrAAdmitirPaciente}
-              >
-                Ir a admitir paciente
-              </button>
-            </div>
-          )}
-
-          {redirectOnSuccess && pacienteCreado && (
-            <div className="mt-3">
-              <button
-                type="button"
-                className="sis-btn sis-btn-success"
-                onClick={() => navigate(redirectOnSuccess)}
-              >
-                Continuar
-              </button>
             </div>
           )}
         </div>
       )}
 
       <div className="sis-detail-layout">
-        <section className="sis-card sis-section-card">
-          <div className="sis-section-header">
-            <h3 className="sis-section-title">Buscar paciente por DNI</h3>
-          </div>
+        <AltaPacienteAccordion
+          title="1. Verificación de existencia"
+          subtitle="Primero verificá si el paciente ya existe en el sistema."
+          isOpen={openSections.verificacion}
+          onToggle={() => setSectionOpen("verificacion")}
+          defaultExpanded
+        >
+          <BloqueVerificacionPaciente
+            form={form}
+            onChange={onChange}
+            onBuscar={buscarPorDni}
+            onReset={resetTodo}
+            disabledGeneral={disabledGeneral}
+            loadingBuscar={loadingBuscar}
+            pacienteMostrado={pacienteMostrado}
+            nroHistoriaClinica={nroHistoriaClinica}
+            modo={modo}
+          />
+        </AltaPacienteAccordion>
 
-          <div className="sis-card-body">
-            <div className="sis-form-grid">
-              <div className="sis-form-group">
-                <label className="sis-form-label">DNI</label>
-                <input
-                  className="sis-form-control"
-                  name="dni"
-                  value={form.dni}
-                  onChange={onChange}
-                  placeholder="Ingrese el dni a buscar..."
-                  disabled={disabledGeneral}
-                />
-              </div>
-            </div>
+        <AltaPacienteAccordion
+          title="2. Datos del paciente"
+          subtitle="Completá la información demográfica obligatoria para el alta."
+          isOpen={openSections.datos}
+          onToggle={() => setSectionOpen("datos")}
+        >
+          <BloqueDatosPaciente
+            form={form}
+            onChange={onChange}
+            disabled={disabledGeneral || modo !== "nuevo"}
+            modo={modo}
+            minFechaNacimiento={obtenerFechaMinNacimiento()}
+            maxFechaNacimiento={obtenerFechaMaxNacimiento()}
+          />
+        </AltaPacienteAccordion>
 
-            <div className="sis-page-actions" style={{ marginTop: "16px" }}>
-              <button
-                type="button"
-                className="sis-btn sis-btn-primary"
-                onClick={buscarPorDni}
-                disabled={disabledGeneral}
-              >
-                {loadingBuscar ? "Buscando..." : "Buscar"}
-              </button>
+        <AltaPacienteAccordion
+          title="3. Registro biométrico"
+          subtitle="La carga de rostro y huella queda preparada desde frontend para integrar luego con backend."
+          isOpen={openSections.biometria}
+          onToggle={() => setSectionOpen("biometria")}
+        >
+          <BloqueBiometriaPaciente
+            biometria={biometria}
+            disabled={disabledGeneral || modo !== "nuevo"}
+            onArchivoChange={manejarArchivoBiometrico}
+            onObservacionChange={actualizarEstadoBiometria}
+            onLimpiar={limpiarBiometria}
+          />
+        </AltaPacienteAccordion>
 
-              <button
-                type="button"
-                className="sis-btn sis-btn-outline"
-                onClick={resetTodo}
-                disabled={disabledGeneral}
-              >
-                Limpiar campos
-              </button>
-            </div>
-
-            {pacienteMostrado && (
-              <div className="sis-detail-grid" style={{ marginTop: "18px" }}>
-                <div className="sis-detail-item sis-detail-item--highlight">
-                  <span className="sis-detail-label">Paciente</span>
-                  <div className="sis-detail-value">
-                    {pacienteMostrado.apellido || "-"}, {pacienteMostrado.nombre || "-"}
-                  </div>
-                </div>
-
-                <div className="sis-detail-item">
-                  <span className="sis-detail-label">DNI</span>
-                  <div className="sis-detail-value">{pacienteMostrado.dni || form.dni || "-"}</div>
-                </div>
-
-                <div className="sis-detail-item">
-                  <span className="sis-detail-label">Historia clínica</span>
-                  <div className="sis-detail-value">
-                    {pacienteMostrado.nroHistoriaClinica || nroHistoriaClinica || "-"}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <form onSubmit={crearNuevoPaciente}>
-          <section className="sis-card sis-section-card">
-            <div className="sis-section-header">
-              <h3 className="sis-section-title">Datos del nuevo paciente</h3>
-            </div>
-
-            <div className="sis-card-body">
-              <div className="sis-form-grid">
-                <div className="sis-form-group">
-                  <label className="sis-form-label">Nombre</label>
-                  <input
-                    className="sis-form-control"
-                    name="nombre"
-                    value={form.nombre}
-                    onChange={onChange}
-                    required={modo === "nuevo"}
-                    disabled={disabledGeneral || modo !== "nuevo"}
-                  />
-                </div>
-
-                <div className="sis-form-group">
-                  <label className="sis-form-label">Apellido</label>
-                  <input
-                    className="sis-form-control"
-                    name="apellido"
-                    value={form.apellido}
-                    onChange={onChange}
-                    required={modo === "nuevo"}
-                    disabled={disabledGeneral || modo !== "nuevo"}
-                  />
-                </div>
-
-                <div className="sis-form-group">
-                  <label className="sis-form-label">Fecha de nacimiento</label>
-                  <input
-                    type="date"
-                    className="sis-form-control"
-                    name="fechaNacimiento"
-                    value={form.fechaNacimiento}
-                    onChange={onChange}
-                    min={obtenerFechaMinNacimiento()}
-                    max={obtenerFechaMaxNacimiento()}
-                    disabled={disabledGeneral || modo !== "nuevo"}
-                  />
-                </div>
-
-                <div className="sis-form-group">
-                  <label className="sis-form-label">Edad</label>
-                  <input
-                    className="sis-form-control"
-                    value={form.edad}
-                    disabled
-                  />
-                  <small className="sis-text-muted">
-                    La edad se calcula automaticamente a partir de la fecha de nacimiento
-                  </small>
-                </div>
-
-                <div className="sis-form-group">
-                  <label className="sis-form-label">Sexo</label>
-                  <select
-                    className="sis-form-control"
-                    name="sexo"
-                    value={form.sexo}
-                    onChange={onChange}
-                    disabled={disabledGeneral || modo !== "nuevo"}
-                  >
-                    <option value="">Seleccionar...</option>
-                    <option value="MASCULINO">Masculino</option>
-                    <option value="FEMENINO">Femenino</option>
-                  </select>
-                </div>
-
-                <div className="sis-form-group">
-                  <label className="sis-form-label">Estado de la persona</label>
-                  <select
-                    className="sis-form-control"
-                    name="estadoPersona"
-                    value={form.estadoPersona}
-                    onChange={onChange}
-                    disabled={disabledGeneral || modo !== "nuevo"}
-                  >
-                    <option value="VIVO">Vivo</option>
-                    <option value="FALLECIDO">Fallecido</option>
-                  </select>
-                </div>
-
-                <div className="sis-form-group">
-                  <label className="sis-form-label">DNI a registrar</label>
-                  <input
-                    className="sis-form-control"
-                    value={limpiarDni(form.dni)}
-                    disabled
-                  />
-                  <small className="sis-text-muted">
-                    Este es el DNI utilizado en la busqueda y será el que se guardara como nuevo paciente.
-                  </small>
-                </div>
-              </div>
-
-              <div className="sis-page-actions" style={{ marginTop: "20px" }}>
-                <button
-                  className="sis-btn sis-btn-success"
-                  type="submit"
-                  disabled={disabledGeneral || modo !== "nuevo"}
-                >
-                  {loadingCrear ? "Creando..." : "Crear paciente"}
-                </button>
-
-                {modo !== "nuevo" && (
-                  <span className="sis-text-muted">
-                    Primero se debe buscar por DNI, si no existe un paciente con ese DNI, se habilita el boton para crear el nuevo paciente.
-                  </span>
-                )}
-              </div>
-            </div>
-          </section>
-        </form>
+        <AltaPacienteAccordion
+          title="4. Confirmar alta"
+          subtitle="Revisá el resumen final antes de crear el paciente."
+          isOpen={openSections.resumen}
+          onToggle={() => setSectionOpen("resumen")}
+        >
+          <BloqueResumenAltaPaciente
+            form={form}
+            biometria={biometria}
+            modo={modo}
+            loadingCrear={loadingCrear}
+            puedeCrearPaciente={puedeCrearPaciente}
+            onCrearPaciente={crearNuevoPaciente}
+          />
+        </AltaPacienteAccordion>
       </div>
     </div>
   );
 }
+
