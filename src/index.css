@@ -816,3 +816,82 @@ img {
     padding: 14px 16px;
   }
 }
+
+/* ===== Modal de biometría / cámara ===== */
+
+.sis-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 2000;
+}
+
+.sis-modal-card {
+  width: 100%;
+  max-width: 720px;
+  background: var(--sis-surface);
+  border: 1px solid var(--sis-border);
+  border-radius: 20px;
+  box-shadow: var(--sis-shadow-md);
+  overflow: hidden;
+}
+
+.sis-modal-card-lg {
+  max-width: 860px;
+}
+
+.sis-modal-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--sis-border);
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f6fc 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sis-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sis-camera-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sis-camera-preview-wrap {
+  width: 100%;
+  background: #0f172a;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sis-camera-preview {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .sis-modal-body {
+    padding: 16px;
+  }
+
+  .sis-camera-preview-wrap {
+    min-height: 240px;
+  }
+}

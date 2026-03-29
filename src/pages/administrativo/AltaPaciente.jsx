@@ -10,6 +10,8 @@ import BloqueVerificacionPaciente from "../../components/BloqueVerificacionPacie
 import BloqueDatosPaciente from "../../components/BloqueDatosPaciente";
 import BloqueBiometriaPaciente from "../../components/BloqueBiometriaPaciente";
 import BloqueResumenAltaPaciente from "../../components/BloqueResumenAltaPaciente";
+import AlertDialog from "../../components/AlertDialog";
+import { registrarRostroPaciente } from "../../api/reconocimientoApi";
 
 const initialForm = {
   dni: "",
@@ -23,17 +25,26 @@ const initialForm = {
 
 const initialBiometria = {
   rostro: {
-    estado: "pendiente", // pendiente | cargado | error
+    estado: "pendiente",
     archivo: null,
     vistaPrevia: "",
     observacion: "",
+    respuestaBackend: null,
   },
   huella: {
-    estado: "pendiente", // pendiente | cargado | error
+    estado: "pendiente",
     archivo: null,
     vistaPrevia: "",
     observacion: "",
   },
+};
+
+const initialAlertDialog = {
+  open: false,
+  title: "Aviso",
+  message: "",
+  type: "info",
+  buttonText: "Aceptar",
 };
 
 function limpiarDni(value) {
@@ -110,8 +121,6 @@ export default function AltaPaciente({
   const [biometria, setBiometria] = useState(initialBiometria);
 
   const [modo, setModo] = useState("idle");
-  // idle | encontrado | nuevo
-
   const [pacienteEncontrado, setPacienteEncontrado] = useState(null);
   const [pacienteCreado, setPacienteCreado] = useState(null);
 
@@ -122,6 +131,8 @@ export default function AltaPaciente({
   const [successMsg, setSuccessMsg] = useState("");
   const [warningMsg, setWarningMsg] = useState("");
   const [nroHistoriaClinica, setNroHistoriaClinica] = useState(null);
+
+  const [alertDialog, setAlertDialog] = useState(initialAlertDialog);
 
   const [openSections, setOpenSections] = useState({
     verificacion: true,
@@ -136,6 +147,25 @@ export default function AltaPaciente({
   );
 
   const pacienteMostrado = pacienteCreado || pacienteEncontrado;
+
+  const openAlertDialog = ({
+    title = "Aviso",
+    message = "",
+    type = "info",
+    buttonText = "Aceptar",
+  }) => {
+    setAlertDialog({
+      open: true,
+      title,
+      message,
+      type,
+      buttonText,
+    });
+  };
+
+  const closeAlertDialog = () => {
+    setAlertDialog(initialAlertDialog);
+  };
 
   const resetAlerts = () => {
     setErrorMsg("");
@@ -157,6 +187,7 @@ export default function AltaPaciente({
       resumen: false,
     });
     resetAlerts();
+    closeAlertDialog();
   };
 
   const cargarPacienteEnFormulario = (paciente) => {
@@ -229,6 +260,7 @@ export default function AltaPaciente({
         archivo: null,
         vistaPrevia: "",
         estado: "pendiente",
+        respuestaBackend: null,
       });
       return;
     }
@@ -242,6 +274,7 @@ export default function AltaPaciente({
       vistaPrevia,
       estado: "cargado",
       observacion: "",
+      respuestaBackend: null,
     });
   };
 
@@ -251,6 +284,7 @@ export default function AltaPaciente({
       vistaPrevia: "",
       estado: "pendiente",
       observacion: "",
+      respuestaBackend: null,
     });
   };
 
@@ -362,6 +396,32 @@ export default function AltaPaciente({
         );
       }
 
+      const pacienteId = pacienteFinal?.id || creadoBase?.id;
+
+      if (pacienteId && biometria.rostro.archivo) {
+        try {
+          const respuestaRostro = await registrarRostroPaciente(
+            pacienteId,
+            biometria.rostro.archivo
+          );
+
+          actualizarEstadoBiometria("rostro", {
+            respuestaBackend: respuestaRostro,
+          });
+        } catch (errRostro) {
+          setWarningMsg((prev) => {
+            const base = prev ? `${prev} ` : "";
+            return (
+              base +
+              (
+                parseBackendMessage(errRostro) ||
+                "El paciente se creó, pero no se pudo registrar el rostro."
+              )
+            );
+          });
+        }
+      }
+
       setPacienteCreado(pacienteFinal);
       setModo("encontrado");
       setSuccessMsg(textoExitoCreacion);
@@ -381,8 +441,24 @@ export default function AltaPaciente({
         resumen: true,
       });
 
-      // En esta primera etapa frontend no se persiste biometría en backend.
-      // Queda la estructura visual y el estado local listos para la integración futura.
+      let mensajeDialogo = textoExitoCreacion;
+
+      if (pacienteFinal?.nroHistoriaClinica || creadoBase?.nroHistoriaClinica) {
+        mensajeDialogo += ` N° Historia Clínica: ${
+          pacienteFinal?.nroHistoriaClinica || creadoBase?.nroHistoriaClinica
+        }.`;
+      }
+
+      if (biometria.rostro?.respuestaBackend?.referenciaBiometrica) {
+        mensajeDialogo += ` Rostro registrado: ${biometria.rostro.respuestaBackend.referenciaBiometrica}.`;
+      }
+
+      openAlertDialog({
+        title: "Paciente creado exitosamente",
+        message: mensajeDialogo,
+        type: "success",
+        buttonText: "Aceptar",
+      });
     } catch (err) {
       const status = err?.response?.status;
       const msg = parseBackendMessage(err);
@@ -446,6 +522,12 @@ export default function AltaPaciente({
               <strong>N° Historia Clínica:</strong> {nroHistoriaClinica}
             </div>
           )}
+
+          {biometria.rostro?.respuestaBackend?.referenciaBiometrica && (
+            <div className="mt-2">
+              <strong>Rostro registrado:</strong> {biometria.rostro.respuestaBackend.referenciaBiometrica}
+            </div>
+          )}
         </div>
       )}
 
@@ -455,7 +537,6 @@ export default function AltaPaciente({
           subtitle="Primero verificá si el paciente ya existe en el sistema."
           isOpen={openSections.verificacion}
           onToggle={() => setSectionOpen("verificacion")}
-          defaultExpanded
         >
           <BloqueVerificacionPaciente
             form={form}
@@ -488,7 +569,7 @@ export default function AltaPaciente({
 
         <AltaPacienteAccordion
           title="3. Registro biométrico"
-          subtitle="La carga de rostro y huella queda preparada desde frontend para integrar luego con backend."
+          subtitle="Podés adjuntar una imagen existente o tomar una foto desde la cámara para el rostro."
           isOpen={openSections.biometria}
           onToggle={() => setSectionOpen("biometria")}
         >
@@ -517,7 +598,15 @@ export default function AltaPaciente({
           />
         </AltaPacienteAccordion>
       </div>
+
+      <AlertDialog
+        open={alertDialog.open}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        onClose={closeAlertDialog}
+        buttonText={alertDialog.buttonText}
+        type={alertDialog.type}
+      />
     </div>
   );
 }
-
