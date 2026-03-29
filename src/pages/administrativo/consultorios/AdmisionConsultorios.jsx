@@ -10,6 +10,8 @@ import {
   obtenerTurnosAdministrativo,
 } from "../../../api/consultoriosApi";
 import { useAuth } from "../../../context/AuthContext";
+import BusquedaPacientePorRostro from "../../../components/BusquedaPacientePorRostro";
+
 
 function hoyISO() {
   return new Date().toISOString().slice(0, 10);
@@ -41,6 +43,12 @@ export default function AdmisionConsultorios() {
   const [guardando, setGuardando] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
+
+  const handlePacienteEncontradoPorRostro = (data) => {
+  setPaciente(data);
+  setDniBusqueda(data?.dni || "");
+  setErrorPaciente("");
+  };
 
   const [form, setForm] = useState({
     agendaId: "",
@@ -247,6 +255,14 @@ export default function AdmisionConsultorios() {
                 {paciente.dni} · HC: {paciente.nroHistoriaClinica || "-"}
               </div>
             )}
+
+            <BusquedaPacientePorRostro
+              disabled={guardando || buscandoPaciente}
+              onPacienteEncontrado={handlePacienteEncontradoPorRostro}
+              titulo="Buscar paciente por rostro"
+              descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para identificar al paciente antes de asignar el turno."
+            />
+
           </div>
         </div>
 

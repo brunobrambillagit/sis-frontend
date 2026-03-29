@@ -12,6 +12,7 @@ import BloqueBiometriaPaciente from "../../components/BloqueBiometriaPaciente";
 import BloqueResumenAltaPaciente from "../../components/BloqueResumenAltaPaciente";
 import AlertDialog from "../../components/AlertDialog";
 import { registrarRostroPaciente } from "../../api/reconocimientoApi";
+import BusquedaPacientePorRostro from "../../components/BusquedaPacientePorRostro";
 
 const initialForm = {
   dni: "",
@@ -133,6 +134,24 @@ export default function AltaPaciente({
   const [nroHistoriaClinica, setNroHistoriaClinica] = useState(null);
 
   const [alertDialog, setAlertDialog] = useState(initialAlertDialog);
+
+  const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
+  setPacienteEncontrado(paciente);
+  setPacienteCreado(null);
+  setModo("encontrado");
+  setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
+  cargarPacienteEnFormulario(paciente);
+  setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
+  setErrorMsg("");
+  setWarningMsg("");
+
+  setOpenSections({
+    verificacion: true,
+    datos: true,
+    biometria: false,
+    resumen: false,
+  });
+  };
 
   const [openSections, setOpenSections] = useState({
     verificacion: true,
@@ -304,11 +323,7 @@ export default function AltaPaciente({
 
     try {
       const paciente = await obtenerPacientePorDni(dniLimpio);
-      setPacienteEncontrado(paciente);
-      setModo("encontrado");
-      setSuccessMsg("El paciente ya existe en el sistema.");
-      cargarPacienteEnFormulario(paciente);
-      setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
+      cargarPacienteEncontrado(paciente, "DNI");
 
       setOpenSections({
         verificacion: true,
@@ -549,6 +564,14 @@ export default function AltaPaciente({
             nroHistoriaClinica={nroHistoriaClinica}
             modo={modo}
           />
+
+          <BusquedaPacientePorRostro
+            disabled={disabledGeneral}
+            onPacienteEncontrado={(paciente) => cargarPacienteEncontrado(paciente, "rostro")}
+            titulo="Buscar paciente por rostro"
+            descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para verificar si el paciente ya existe."
+          />
+
         </AltaPacienteAccordion>
 
         <AltaPacienteAccordion

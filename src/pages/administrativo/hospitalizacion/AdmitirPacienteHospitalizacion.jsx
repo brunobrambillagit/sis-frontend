@@ -3,6 +3,8 @@ import { obtenerPacientePorDni, actualizarPacientePorDni } from "../../../api/pa
 import { crearEpisodio } from "../../../api/episodiosApi";
 import { obtenerCamasDisponiblesHospitalizacion } from "../../../api/camasApi";
 import { useAuth } from "../../../context/AuthContext";
+import BusquedaPacientePorRostro from "../../../components/BusquedaPacientePorRostro";
+
 
 const initialForm = {
   dni: "",
@@ -92,6 +94,17 @@ export default function AdmitirPacienteHospitalizacion() {
   const disabledGeneral = loadingBuscar || loadingGuardarYAdmitir;
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
 
+  const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
+  setPacienteOriginal(paciente);
+  setPacienteActualizado(null);
+  setEpisodioCreado(null);
+  cargarPacienteEnFormulario(paciente);
+  setSuccessMsg(
+    `Paciente encontrado por ${origen}. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión.`
+  );
+  setErrorMsg("");
+  };
+
   const puedeAdmitir = useMemo(() => {
     return Boolean(pacienteActivo?.id && usuario?.id && form.camaId);
   }, [pacienteActivo, usuario, form.camaId]);
@@ -179,11 +192,7 @@ export default function AdmitirPacienteHospitalizacion() {
     setLoadingBuscar(true);
     try {
       const paciente = await obtenerPacientePorDni(dniLimpio);
-      setPacienteOriginal(paciente);
-      cargarPacienteEnFormulario(paciente);
-      setSuccessMsg(
-        "Paciente encontrado. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión."
-      );
+      cargarPacienteEncontrado(paciente, "DNI");
     } catch (err) {
       const status = err?.response?.status;
       const msg = parseBackendMessage(err);
@@ -333,6 +342,13 @@ export default function AdmitirPacienteHospitalizacion() {
               Limpiar campos
             </button>
           </div>
+
+          <BusquedaPacientePorRostro
+            disabled={disabledGeneral}
+            onPacienteEncontrado={(paciente) => cargarPacienteEncontrado(paciente, "rostro")}
+            titulo="Buscar paciente por rostro"
+            descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para identificar al paciente."
+          />
         </div>
       </section>
 
