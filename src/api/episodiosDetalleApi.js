@@ -14,3 +14,8 @@ export async function agregarEvolucionEpisodio(id, payload) {
   const { data } = await axiosClient.post(`/api/episodios/${id}/evoluciones`, payload);
   return data;
 }
+
+export async function obtenerEpisodiosPorPacienteDni(dni) {
+  const { data } = await axiosClient.get(`/api/episodios/paciente/${dni}`);
+  return data;
+}

@@ -25,3 +25,8 @@ export async function cambiarCamaEpisodio(id, nuevaCamaId, usuarioId) {
   });
   return data;
 }
+
+export async function obtenerEpisodiosPorPacienteDni(dni) {
+  const { data } = await axiosClient.get(`/api/episodios/paciente/${dni}`);
+  return data;
+}

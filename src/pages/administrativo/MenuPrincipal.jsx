@@ -34,6 +34,16 @@ export default function MenuPrincipal() {
             🏨 <h3>Hospitalización</h3>
             <p>Pacientes internados y evolución clínica.</p>
           </div>
+
+        
+          <div
+            className="menu-box pacientes"
+            onClick={() => navigate("/administrativo/pacientes")}
+          >
+            🔎 <h3>Pacientes</h3>
+            <p>Búsqueda y actualización de datos del paciente.</p>
+          </div>
+
         </div>
       </div>
     </>

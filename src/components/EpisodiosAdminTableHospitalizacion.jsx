@@ -72,7 +72,7 @@ export default function EpisodiosActivosTableHospitalizacion() {
       setEpisodios(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setError("No se pudo cargar la lista de pacientes hospitalizados.");
+      setError("No se pudo cargar la lista de pacientes Hospitalizados.");
     } finally {
       setLoading(false);
     }
@@ -170,7 +170,7 @@ export default function EpisodiosActivosTableHospitalizacion() {
     <div className="sis-page">
       <div className="sis-page-header">
         <div className="sis-page-title-wrap">
-          <h2 className="sis-page-title">Lista de pacientes hospitalizados</h2>
+          <h2 className="sis-page-title">Lista de pacientes Hospitalizados</h2>
           <p className="sis-page-subtitle"></p>
         </div>
 

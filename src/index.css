@@ -895,3 +895,41 @@ img {
     min-height: 240px;
   }
 }
+
+/* ===== Modal cambiar contraseña ===== */
+
+.sis-modal-card-password {
+  max-width: 480px;
+}
+
+.sis-modal-actions {
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.sis-modal-card-password .sis-form {
+  gap: 14px;
+}
+
+.sis-modal-card-password .sis-form-control {
+  background: #fbfdff;
+}
+
+.sis-modal-card-password .sis-form-control::placeholder {
+  color: var(--sis-text-muted);
+}
+
+@media (max-width: 768px) {
+  .sis-modal-card-password {
+    max-width: 100%;
+  }
+
+  .sis-modal-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .sis-modal-actions .sis-btn {
+    width: 100%;
+  }
+}

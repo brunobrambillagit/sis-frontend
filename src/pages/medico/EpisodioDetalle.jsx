@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import Header from "../../components/Header";
+import { useLocation, useNavigate, useParams } from "react-router-dom";import Header from "../../components/Header";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import {
@@ -54,6 +53,12 @@ export default function EpisodioDetalle() {
 
   const [observacion, setObservacion] = useState("");
   const [guardandoObservacion, setGuardandoObservacion] = useState(false);
+
+  const location = useLocation();
+  const soloLectura = location.state?.soloLectura === true;
+  const volverAListaPaciente = location.state?.volverAListaPaciente === true;
+  const pacienteBuscado = location.state?.pacienteBuscado || null;
+  const episodiosPaciente = location.state?.episodiosPaciente || [];
 
   const [formEvolucion, setFormEvolucion] = useState({
     diagnosticos: "",
@@ -213,14 +218,25 @@ export default function EpisodioDetalle() {
             </p>
           </div>
 
-          <div className="sis-page-actions">
-            <button
-              className="sis-btn sis-btn-outline"
-              onClick={() => navigate(-1)}
-            >
-              Volver
-            </button>
-          </div>
+          <button
+            className="sis-btn sis-btn-outline"
+            onClick={() => {
+              if (volverAListaPaciente) {
+                navigate("/medico/pacientes", {
+                  state: {
+                    restaurarBusqueda: true,
+                    pacienteBuscado,
+                    episodiosPaciente,
+                  },
+                });
+                return;
+              }
+
+              navigate(-1);
+            }}
+          >
+            Volver
+          </button>
         </div>
 
         {loading && <div className="sis-loading-state">Cargando detalle...</div>}
@@ -331,13 +347,14 @@ export default function EpisodioDetalle() {
                         value={observacion}
                         onChange={(e) => setObservacion(e.target.value)}
                         placeholder="Ingresá una observación clínica o administrativa relevante..."
+                        disabled={soloLectura}
                       />
                     </div>
 
                     <button
                       type="submit"
                       className="sis-btn sis-btn-primary"
-                      disabled={guardandoObservacion}
+                      disabled={guardandoObservacion || soloLectura}
                     >
                       {guardandoObservacion ? "Guardando..." : "Guardar observación"}
                     </button>
@@ -397,6 +414,7 @@ export default function EpisodioDetalle() {
                         value={formEvolucion.diagnosticos}
                         onChange={handleChangeEvolucion}
                         placeholder="Diagnóstico principal y diagnósticos asociados..."
+                        disabled={soloLectura}
                       />
                     </div>
 
@@ -409,6 +427,7 @@ export default function EpisodioDetalle() {
                         value={formEvolucion.evolucion}
                         onChange={handleChangeEvolucion}
                         placeholder="Describí la evolución clínica del paciente..."
+                        disabled={soloLectura}
                       />
                     </div>
 
@@ -421,6 +440,7 @@ export default function EpisodioDetalle() {
                         value={formEvolucion.medicacionIndicaciones}
                         onChange={handleChangeEvolucion}
                         placeholder="Indicaciones, tratamiento y medicación..."
+                        disabled={soloLectura}
                       />
                     </div>
 
@@ -435,6 +455,7 @@ export default function EpisodioDetalle() {
                         value={formEvolucion.estudiosSolicitados}
                         onChange={handleChangeEvolucion}
                         placeholder="Estudios solicitados o a evaluar..."
+                        disabled={soloLectura}
                       />
                     </div>
                   </div>
@@ -442,7 +463,7 @@ export default function EpisodioDetalle() {
                   <button
                     type="submit"
                     className="sis-btn sis-btn-success"
-                    disabled={guardandoEvolucion}
+                    disabled={guardandoEvolucion || soloLectura}
                   >
                     {guardandoEvolucion ? "Guardando..." : "Firmar evolucion"}
                   </button>

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { loginApi } from "../api/authApi";
+import { getTokenExpiration } from "../utils/jwtUtils";
 
 const AuthContext = createContext();
 
@@ -15,9 +16,14 @@ export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
 
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState("warning");
+
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("usuario");
+
     if (storedToken) setToken(storedToken);
     if (storedUser) setUsuario(JSON.parse(storedUser));
   }, []);
@@ -28,6 +34,8 @@ export const AuthProvider = ({ children }) => {
     const user = {
       id: data.id,
       email: data.email,
+      nombre: data.nombre || "",
+      apellido: data.apellido || "",
       rol: normalizarRol(data.rol),
     };
 
@@ -47,8 +55,57 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("usuario");
   };
 
+  useEffect(() => {
+    if (!token) return;
+
+    const exp = getTokenExpiration(token);
+    if (!exp) return;
+
+    const now = Date.now();
+    const tiempoRestante = exp - now;
+
+    if (tiempoRestante <= 0) {
+      logout();
+      window.location.href = "/";
+      return;
+    }
+
+    const AVISO_ANTES = 5 * 60 * 1000; // 5 minutos
+
+    let avisoTimer;
+
+    if (tiempoRestante > AVISO_ANTES) {
+      avisoTimer = setTimeout(() => {
+        setAlertMessage("Tu sesión está por expirar en unos minutos");
+        setAlertType("warning");
+        setAlertOpen(true);
+      }, tiempoRestante - AVISO_ANTES);
+    }
+
+    const logoutTimer = setTimeout(() => {
+      logout();
+      window.location.href = "/";
+    }, tiempoRestante);
+
+    return () => {
+      if (avisoTimer) clearTimeout(avisoTimer);
+      clearTimeout(logoutTimer);
+    };
+  }, [token]);
+
   return (
-    <AuthContext.Provider value={{ usuario, token, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        usuario,
+        token,
+        login,
+        logout,
+        alertOpen,
+        setAlertOpen,
+        alertMessage,
+        alertType,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -29,6 +29,9 @@ import CrearPacienteGuardia from "../pages/administrativo/guardia/CrearPacienteG
 import CrearPacienteHospitalizacion from "../pages/administrativo/hospitalizacion/CrearPacienteHospitalizacion";
 import CrearPacienteConsultorios from "../pages/administrativo/consultorios/crearPacienteConsultorios";
 
+import BusquedaPacienteAdministrativa from "../pages/administrativo/busquedas/BusquedaPacienteAdministrativa";
+import BusquedaPacienteMedica from "../pages/medico/busquedas/BusquedaPacienteMedica";
+
 const LayoutConHeader = () => (
   <>
     <Outlet />
@@ -66,6 +69,8 @@ export default function AppRouter() {
         <Route path="hospitalizacion/traslado-cama/:episodioId" element={<CambiarCamaHospitalizacionAdmin />} />
         <Route path="hospitalizacion/historial-traslados/:episodioId" element={<HistorialTrasladosHospitalizacionAdmin />} />
 
+        <Route path="pacientes" element={<BusquedaPacienteAdministrativa />} />
+
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
 
@@ -84,6 +89,8 @@ export default function AppRouter() {
         <Route path="hospitalizacion/traslado-cama/:episodioId" element={<CambiarCamaHospitalizacionMedico />} />
         <Route path="hospitalizacion/historial-traslados/:episodioId" element={<HistorialTrasladosHospitalizacionMedico />} />
         <Route path="episodios/:id" element={<EpisodioDetalle />} />
+        
+        <Route path="pacientes" element={<BusquedaPacienteMedica />} />        
 
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
