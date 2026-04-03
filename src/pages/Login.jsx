@@ -16,6 +16,7 @@ export default function Login() {
   useEffect(() => {
     if (usuario?.rol === "administrativo") navigate("/administrativo");
     if (usuario?.rol === "medico") navigate("/medico");
+    if (usuario?.rol === "admin") navigate("/admin");
   }, [usuario, navigate]);
 
   const handleSubmit = async (e) => {
@@ -27,6 +28,7 @@ export default function Login() {
 
       if (user?.rol === "administrativo") navigate("/administrativo");
       else if (user?.rol === "medico") navigate("/medico");
+      else if (user?.rol === "admin") navigate("/admin");
       else navigate("/login");
     } catch (err) {
       const data = err?.response?.data;

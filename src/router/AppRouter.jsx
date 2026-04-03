@@ -5,6 +5,7 @@ import ProtectedRoute from "./ProtectedRoute";
 
 import MenuAdmin from "../pages/administrativo/MenuPrincipal";
 import MenuMedico from "../pages/medico/MenuPrincipal";
+import MenuPrincipalAdmin from "../pages/admin/MenuPrincipal";
 
 import ListaEsperaGuardiaAdmin from "../pages/administrativo/guardia/ListaEspera";
 import ListaEsperaConsultoriosAdmin from "../pages/administrativo/consultorios/ListaEspera";
@@ -32,11 +33,13 @@ import CrearPacienteConsultorios from "../pages/administrativo/consultorios/crea
 import BusquedaPacienteAdministrativa from "../pages/administrativo/busquedas/BusquedaPacienteAdministrativa";
 import BusquedaPacienteMedica from "../pages/medico/busquedas/BusquedaPacienteMedica";
 
-const LayoutConHeader = () => (
-  <>
-    <Outlet />
-  </>
-);
+import UsuariosAdmin from "../pages/admin/usuarios/UsuariosAdmin";
+import CamasAdmin from "../pages/admin/camas/CamasAdmin";
+import RekognitionAdmin from "../pages/admin/aws/RekognitionAdmin";
+
+const LayoutConHeader = () => {
+  return <Outlet />;
+};
 
 export default function AppRouter() {
   return (
@@ -89,9 +92,23 @@ export default function AppRouter() {
         <Route path="hospitalizacion/traslado-cama/:episodioId" element={<CambiarCamaHospitalizacionMedico />} />
         <Route path="hospitalizacion/historial-traslados/:episodioId" element={<HistorialTrasladosHospitalizacionMedico />} />
         <Route path="episodios/:id" element={<EpisodioDetalle />} />
-        
-        <Route path="pacientes" element={<BusquedaPacienteMedica />} />        
+        <Route path="pacientes" element={<BusquedaPacienteMedica />} />
+        <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
+      </Route>
 
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute rolPermitido="admin">
+            <LayoutConHeader />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<MenuPrincipalAdmin />} />
+        <Route path="usuarios" element={<UsuariosAdmin />} />
+        <Route path="agendas" element={<AgendasConsultorios />} />
+        <Route path="camas" element={<CamasAdmin />} />
+        <Route path="aws-rekognition" element={<RekognitionAdmin />} />
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
     </Routes>

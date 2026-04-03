@@ -33,3 +33,13 @@ export async function buscarPacientePorRostro(archivo) {
 
   return data;
 }
+
+export async function obtenerRostrosAdmin() {
+  const { data } = await axiosClient.get("/api/reconocimiento/rostros/admin");
+  return data;
+}
+
+export async function eliminarRostroAdmin(reconocimientoId) {
+  const { data } = await axiosClient.delete(`/api/reconocimiento/rostros/${reconocimientoId}`);
+  return data;
+}

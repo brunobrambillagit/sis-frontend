@@ -6,10 +6,14 @@ const AuthContext = createContext();
 
 function normalizarRol(rolBackend) {
   if (!rolBackend) return null;
+
   const r = String(rolBackend).toUpperCase();
+
   if (r === "ADMINISTRATIVO") return "administrativo";
   if (r === "MEDICO") return "medico";
-  return rolBackend;
+  if (r === "ADMIN") return "admin";
+
+  return String(rolBackend).toLowerCase();
 }
 
 export const AuthProvider = ({ children }) => {
@@ -37,6 +41,7 @@ export const AuthProvider = ({ children }) => {
       nombre: data.nombre || "",
       apellido: data.apellido || "",
       rol: normalizarRol(data.rol),
+      debeCambiarPassword: Boolean(data.debeCambiarPassword),
     };
 
     setToken(data.token);
@@ -70,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    const AVISO_ANTES = 5 * 60 * 1000; // 5 minutos
+    const AVISO_ANTES = 5 * 60 * 1000;
 
     let avisoTimer;
 

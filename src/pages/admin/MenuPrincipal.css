@@ -1,0 +1,98 @@
+.menu-container-medico,
+.menu-container-admin {
+  background: url("../../assets/wallpaper_menu_medico.jpg") no-repeat center center / cover;
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.menu-container-medico h2,
+.menu-container-admin h2 {
+  margin-bottom: 2rem;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.menu-options-medico,
+.menu-options-admin {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.menu-box-medico,
+.menu-box-admin {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.8rem 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border-top: 6px solid transparent;
+}
+
+.menu-box-medico:hover,
+.menu-box-admin:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+}
+
+.menu-box-medico h3,
+.menu-box-admin h3 {
+  margin: 0.5rem 0;
+  color: #0a4275;
+  font-weight: 600;
+}
+
+.menu-box-medico p,
+.menu-box-admin p {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.guardia {
+  border-top-color: #0d6efd;
+}
+
+.consultorios,
+.agendas {
+  border-top-color: #198754;
+}
+
+.hospitalizacion,
+.usuarios {
+  border-top-color: #dc3545;
+}
+
+.pacientes,
+.camas {
+  border-top-color: #6c757d;
+}
+
+.aws {
+  border-top-color: #fd7e14;
+}
+
+@media (max-width: 768px) {
+  .menu-container-medico,
+  .menu-container-admin {
+    padding: 1.5rem 1rem;
+  }
+
+  .menu-box-medico,
+  .menu-box-admin {
+    padding: 1.2rem;
+  }
+
+  .menu-options-medico,
+  .menu-options-admin {
+    grid-template-columns: 1fr;
+  }
+}
