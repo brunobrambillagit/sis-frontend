@@ -2,17 +2,15 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   crearPaciente,
-  obtenerPacientePorDni,
   actualizarPacientePorDni,
 } from "../../api/pacientesApi";
 import AltaPacienteAccordion from "../../components/AltaPacienteAccordion";
-import BloqueVerificacionPaciente from "../../components/BloqueVerificacionPaciente";
 import BloqueDatosPaciente from "../../components/BloqueDatosPaciente";
 import BloqueBiometriaPaciente from "../../components/BloqueBiometriaPaciente";
 import BloqueResumenAltaPaciente from "../../components/BloqueResumenAltaPaciente";
 import AlertDialog from "../../components/AlertDialog";
 import { registrarRostroPaciente } from "../../api/reconocimientoApi";
-import BusquedaPacientePorRostro from "../../components/BusquedaPacientePorRostro";
+import BuscadorPacienteUniversal from "../../components/BuscadorPacienteUniversal";
 
 const initialForm = {
   dni: "",
@@ -135,24 +133,6 @@ export default function AltaPaciente({
 
   const [alertDialog, setAlertDialog] = useState(initialAlertDialog);
 
-  const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
-  setPacienteEncontrado(paciente);
-  setPacienteCreado(null);
-  setModo("encontrado");
-  setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
-  cargarPacienteEnFormulario(paciente);
-  setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
-  setErrorMsg("");
-  setWarningMsg("");
-
-  setOpenSections({
-    verificacion: true,
-    datos: true,
-    biometria: false,
-    resumen: false,
-  });
-  };
-
   const [openSections, setOpenSections] = useState({
     verificacion: true,
     datos: false,
@@ -221,6 +201,51 @@ export default function AltaPaciente({
     });
   };
 
+  const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
+    setPacienteEncontrado(paciente);
+    setPacienteCreado(null);
+    setModo("encontrado");
+    setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
+    cargarPacienteEnFormulario(paciente);
+    setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
+    setErrorMsg("");
+    setWarningMsg("");
+
+    setOpenSections({
+      verificacion: true,
+      datos: true,
+      biometria: false,
+      resumen: false,
+    });
+  };
+
+  const manejarPacienteNoEncontrado = (dniLimpio, err) => {
+    setLoadingBuscar(false);
+    setNroHistoriaClinica(null);
+    setPacienteEncontrado(null);
+    setPacienteCreado(null);
+
+    if (err?.validation) {
+      setErrorMsg(err.message || "DNI inválido.");
+      return;
+    }
+
+    const status = err?.response?.status;
+    const msg = parseBackendMessage(err);
+
+    if (status === 400 && msg.includes("No existe paciente con DNI")) {
+      setModo("nuevo");
+      setForm((prev) => ({ ...prev, dni: dniLimpio }));
+      setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
+      setErrorMsg("");
+      setWarningMsg("");
+      expandirFlujoAlta();
+      return;
+    }
+
+    setErrorMsg(msg || "Error al buscar paciente.");
+  };
+
   const setSectionOpen = (sectionKey, nextValue) => {
     setOpenSections((prev) => ({
       ...prev,
@@ -261,6 +286,15 @@ export default function AltaPaciente({
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDniBusquedaChange = (value) => {
+    setForm((prev) => ({ ...prev, dni: value }));
+    setModo("idle");
+    setPacienteEncontrado(null);
+    setPacienteCreado(null);
+    setNroHistoriaClinica(null);
+    resetAlerts();
   };
 
   const actualizarEstadoBiometria = (tipo, cambios) => {
@@ -305,48 +339,6 @@ export default function AltaPaciente({
       observacion: "",
       respuestaBackend: null,
     });
-  };
-
-  const buscarPorDni = async () => {
-    resetAlerts();
-    setNroHistoriaClinica(null);
-    setPacienteEncontrado(null);
-    setPacienteCreado(null);
-
-    const dniLimpio = limpiarDni(form.dni);
-    if (!dniLimpio) {
-      setErrorMsg("DNI inválido.");
-      return;
-    }
-
-    setLoadingBuscar(true);
-
-    try {
-      const paciente = await obtenerPacientePorDni(dniLimpio);
-      cargarPacienteEncontrado(paciente, "DNI");
-
-      setOpenSections({
-        verificacion: true,
-        datos: true,
-        biometria: false,
-        resumen: false,
-      });
-    } catch (err) {
-      const status = err?.response?.status;
-      const msg = parseBackendMessage(err);
-
-      if (status === 400 && msg.includes("No existe paciente con DNI")) {
-        setModo("nuevo");
-        setForm((prev) => ({ ...prev, dni: dniLimpio }));
-        setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
-        expandirFlujoAlta();
-        return;
-      }
-
-      setErrorMsg(msg || "Error al buscar paciente.");
-    } finally {
-      setLoadingBuscar(false);
-    }
   };
 
   const crearNuevoPaciente = async () => {
@@ -553,25 +545,14 @@ export default function AltaPaciente({
           isOpen={openSections.verificacion}
           onToggle={() => setSectionOpen("verificacion")}
         >
-          <BloqueVerificacionPaciente
-            form={form}
-            onChange={onChange}
-            onBuscar={buscarPorDni}
+          <BuscadorPacienteUniversal
+            dniValue={form.dni}
+            onDniChange={handleDniBusquedaChange}
+            onPacienteEncontrado={cargarPacienteEncontrado}
+            onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
             onReset={resetTodo}
-            disabledGeneral={disabledGeneral}
-            loadingBuscar={loadingBuscar}
-            pacienteMostrado={pacienteMostrado}
-            nroHistoriaClinica={nroHistoriaClinica}
-            modo={modo}
-          />
-
-          <BusquedaPacientePorRostro
             disabled={disabledGeneral}
-            onPacienteEncontrado={(paciente) => cargarPacienteEncontrado(paciente, "rostro")}
-            titulo="Buscar paciente por rostro"
-            descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para verificar si el paciente ya existe."
           />
-
         </AltaPacienteAccordion>
 
         <AltaPacienteAccordion

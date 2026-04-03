@@ -10,8 +10,7 @@ import {
   obtenerTurnosAdministrativo,
 } from "../../../api/consultoriosApi";
 import { useAuth } from "../../../context/AuthContext";
-import BusquedaPacientePorRostro from "../../../components/BusquedaPacientePorRostro";
-
+import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
 
 function hoyISO() {
   return new Date().toISOString().slice(0, 10);
@@ -28,13 +27,18 @@ function formatearFecha(fechaIso) {
   return `${dia}/${mes}/${anio}`;
 }
 
+function parseBackendMessage(err) {
+  const data = err?.response?.data;
+  if (typeof data === "string") return data;
+  return data?.message || data?.error || data?.mensaje || "";
+}
+
 export default function AdmisionConsultorios() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
 
   const [dniBusqueda, setDniBusqueda] = useState("");
   const [paciente, setPaciente] = useState(null);
-  const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [errorPaciente, setErrorPaciente] = useState("");
 
   const [agendas, setAgendas] = useState([]);
@@ -44,10 +48,29 @@ export default function AdmisionConsultorios() {
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
 
-  const handlePacienteEncontradoPorRostro = (data) => {
-  setPaciente(data);
-  setDniBusqueda(data?.dni || "");
-  setErrorPaciente("");
+  const handlePacienteEncontrado = (data) => {
+    setPaciente(data);
+    setDniBusqueda(data?.dni || "");
+    setErrorPaciente("");
+  };
+
+  const manejarPacienteNoEncontrado = (_, err) => {
+    if (err?.validation) {
+      setErrorPaciente(err.message || "Ingresá un DNI válido.");
+      setPaciente(null);
+      return;
+    }
+
+    setPaciente(null);
+    setErrorPaciente(
+      parseBackendMessage(err) || "No se encontró un paciente con ese DNI."
+    );
+  };
+
+  const resetBusquedaPaciente = () => {
+    setDniBusqueda("");
+    setPaciente(null);
+    setErrorPaciente("");
   };
 
   const [form, setForm] = useState({
@@ -105,33 +128,6 @@ export default function AdmisionConsultorios() {
     [turnosDisponibles, form.turnoId]
   );
 
-  const handleBuscarPaciente = async (e) => {
-    e.preventDefault();
-
-    if (!dniBusqueda.trim()) {
-      setErrorPaciente("Ingresá un DNI para buscar el paciente.");
-      setPaciente(null);
-      return;
-    }
-
-    try {
-      setBuscandoPaciente(true);
-      setErrorPaciente("");
-      const data = await buscarPacientePorDni(dniBusqueda.trim());
-      setPaciente(data);
-    } catch (err) {
-      console.error(err);
-      setPaciente(null);
-      setErrorPaciente(
-        err?.response?.data?.message ||
-          err?.response?.data ||
-          "No se encontró un paciente con ese DNI."
-      );
-    } finally {
-      setBuscandoPaciente(false);
-    }
-  };
-
   const handleAbrirConfirmacion = (e) => {
     e.preventDefault();
 
@@ -167,9 +163,7 @@ export default function AdmisionConsultorios() {
     } catch (err) {
       console.error(err);
       alert(
-        err?.response?.data?.message ||
-          err?.response?.data ||
-          "No se pudo otorgar el turno."
+        parseBackendMessage(err) || "No se pudo otorgar el turno."
       );
     } finally {
       setGuardando(false);
@@ -207,33 +201,28 @@ export default function AdmisionConsultorios() {
 
         <div className="sis-card" style={{ marginBottom: 16 }}>
           <div className="sis-card-body">
-            <form onSubmit={handleBuscarPaciente}>
-              <div className="sis-form-grid" style={{ gridTemplateColumns: "2fr 1fr" }}>
-                <div className="sis-form-group">
-                  <label className="sis-form-label">DNI del paciente</label>
-                  <input
-                    className="sis-form-control"
-                    type="text"
-                    value={dniBusqueda}
-                    onChange={(e) => setDniBusqueda(e.target.value)}
-                    placeholder="Ingresá el DNI"
-                  />
-                </div>
-
-                <div
-                  className="sis-form-field"
-                  style={{ justifyContent: "end", display: "flex", alignItems: "end" }}
-                >
-                  <button
-                    className="sis-btn sis-btn-primary"
-                    type="submit"
-                    disabled={buscandoPaciente}
-                  >
-                    {buscandoPaciente ? "Buscando..." : "Buscar paciente"}
-                  </button>
-                </div>
-              </div>
-            </form>
+            <BuscadorPacienteUniversal
+              dniValue={dniBusqueda}
+              onDniChange={(value) => {
+                setDniBusqueda(value);
+                setPaciente(null);
+                setErrorPaciente("");
+              }}
+              onPacienteEncontrado={handlePacienteEncontrado}
+              onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
+              onReset={resetBusquedaPaciente}
+              fetchPacientePorDni={buscarPacientePorDni}
+              disabled={guardando}
+              labels={{
+                buscarDni: "Buscar paciente",
+                dniPlaceholder: "Ingresá el DNI",
+              }}
+              rostroProps={{
+                titulo: "Buscar paciente por rostro",
+                descripcion:
+                  "Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para identificar al paciente antes de asignar el turno.",
+              }}
+            />
 
             {errorPaciente && (
               <div
@@ -255,14 +244,6 @@ export default function AdmisionConsultorios() {
                 {paciente.dni} · HC: {paciente.nroHistoriaClinica || "-"}
               </div>
             )}
-
-            <BusquedaPacientePorRostro
-              disabled={guardando || buscandoPaciente}
-              onPacienteEncontrado={handlePacienteEncontradoPorRostro}
-              titulo="Buscar paciente por rostro"
-              descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para identificar al paciente antes de asignar el turno."
-            />
-
           </div>
         </div>
 
@@ -435,4 +416,4 @@ export default function AdmisionConsultorios() {
       />
     </>
   );
-}
+};

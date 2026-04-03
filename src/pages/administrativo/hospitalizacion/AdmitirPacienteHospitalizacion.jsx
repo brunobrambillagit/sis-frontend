@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { obtenerPacientePorDni, actualizarPacientePorDni } from "../../../api/pacientesApi";
+import { actualizarPacientePorDni } from "../../../api/pacientesApi";
 import { crearEpisodio } from "../../../api/episodiosApi";
 import { obtenerCamasDisponiblesHospitalizacion } from "../../../api/camasApi";
 import { useAuth } from "../../../context/AuthContext";
-import BusquedaPacientePorRostro from "../../../components/BusquedaPacientePorRostro";
-
+import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
 
 const initialForm = {
   dni: "",
@@ -85,24 +84,42 @@ export default function AdmitirPacienteHospitalizacion() {
 
   const [camasDisponibles, setCamasDisponibles] = useState([]);
   const [loadingCamas, setLoadingCamas] = useState(true);
-  const [loadingBuscar, setLoadingBuscar] = useState(false);
   const [loadingGuardarYAdmitir, setLoadingGuardarYAdmitir] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const disabledGeneral = loadingBuscar || loadingGuardarYAdmitir;
+  const disabledGeneral = loadingGuardarYAdmitir;
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
 
   const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
-  setPacienteOriginal(paciente);
-  setPacienteActualizado(null);
-  setEpisodioCreado(null);
-  cargarPacienteEnFormulario(paciente);
-  setSuccessMsg(
-    `Paciente encontrado por ${origen}. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión.`
-  );
-  setErrorMsg("");
+    setPacienteOriginal(paciente);
+    setPacienteActualizado(null);
+    setEpisodioCreado(null);
+    cargarPacienteEnFormulario(paciente);
+    setSuccessMsg(
+      `Paciente encontrado por ${origen}. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión.`
+    );
+    setErrorMsg("");
+  };
+
+  const manejarPacienteNoEncontrado = (_, err) => {
+    if (err?.validation) {
+      setErrorMsg(err.message || "DNI inválido.");
+      return;
+    }
+
+    const status = err?.response?.status;
+    const msg = parseBackendMessage(err);
+
+    if (status === 400 && msg.includes("No existe paciente con DNI")) {
+      setErrorMsg(
+        "El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente."
+      );
+      return;
+    }
+
+    setErrorMsg(msg || "Error al buscar paciente.");
   };
 
   const puedeAdmitir = useMemo(() => {
@@ -163,6 +180,14 @@ export default function AdmitirPacienteHospitalizacion() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleDniChange = (value) => {
+    setForm((prev) => ({ ...prev, dni: value }));
+    setPacienteOriginal(null);
+    setPacienteActualizado(null);
+    setEpisodioCreado(null);
+    resetAlerts();
+  };
+
   const cargarPacienteEnFormulario = (paciente) => {
     setForm((prev) => ({
       ...prev,
@@ -175,39 +200,6 @@ export default function AdmitirPacienteHospitalizacion() {
       estadoPersona: paciente?.estadoPersona || "",
       nroHistoriaClinica: paciente?.nroHistoriaClinica || "",
     }));
-  };
-
-  const buscarPaciente = async () => {
-    resetAlerts();
-    setPacienteOriginal(null);
-    setPacienteActualizado(null);
-    setEpisodioCreado(null);
-
-    const dniLimpio = limpiarDni(form.dni);
-    if (!dniLimpio) {
-      setErrorMsg("DNI inválido.");
-      return;
-    }
-
-    setLoadingBuscar(true);
-    try {
-      const paciente = await obtenerPacientePorDni(dniLimpio);
-      cargarPacienteEncontrado(paciente, "DNI");
-    } catch (err) {
-      const status = err?.response?.status;
-      const msg = parseBackendMessage(err);
-
-      if (status === 400 && msg.includes("No existe paciente con DNI")) {
-        setErrorMsg(
-          "El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente."
-        );
-        return;
-      }
-
-      setErrorMsg(msg || "Error al buscar paciente.");
-    } finally {
-      setLoadingBuscar(false);
-    }
   };
 
   const guardarCambiosYAdmitir = async (e) => {
@@ -309,45 +301,13 @@ export default function AdmitirPacienteHospitalizacion() {
             </div>
           )}
 
-          <div className="sis-form-grid">
-            <div className="sis-form-group">
-              <label className="sis-form-label">DNI</label>
-              <input
-                className="sis-form-control"
-                name="dni"
-                value={form.dni}
-                onChange={onChange}
-                placeholder="Ingresa el dni a buscar..."
-                disabled={disabledGeneral}
-              />
-            </div>
-          </div>
-
-          <div className="sis-page-actions" style={{ marginTop: "16px" }}>
-            <button
-              type="button"
-              className="sis-btn sis-btn-primary"
-              onClick={buscarPaciente}
-              disabled={disabledGeneral}
-            >
-              {loadingBuscar ? "Buscando..." : "Buscar paciente"}
-            </button>
-
-            <button
-              type="button"
-              className="sis-btn sis-btn-outline"
-              onClick={resetTodo}
-              disabled={disabledGeneral}
-            >
-              Limpiar campos
-            </button>
-          </div>
-
-          <BusquedaPacientePorRostro
+          <BuscadorPacienteUniversal
+            dniValue={form.dni}
+            onDniChange={handleDniChange}
+            onPacienteEncontrado={cargarPacienteEncontrado}
+            onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
+            onReset={resetTodo}
             disabled={disabledGeneral}
-            onPacienteEncontrado={(paciente) => cargarPacienteEncontrado(paciente, "rostro")}
-            titulo="Buscar paciente por rostro"
-            descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para identificar al paciente."
           />
         </div>
       </section>
@@ -509,4 +469,4 @@ export default function AdmitirPacienteHospitalizacion() {
       </section>
     </div>
   );
-}
+};

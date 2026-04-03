@@ -14,13 +14,14 @@ export default function BusquedaPacientePorRostro({
   disabled = false,
   titulo = "Búsqueda por rostro",
   descripcion = "Podés seleccionar una imagen o tomar una foto para buscar al paciente.",
+  embedded = false,
+  showOwnDialogs = true,
 }) {
   const [archivo, setArchivo] = useState(null);
   const [vistaPrevia, setVistaPrevia] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [openCameraModal, setOpenCameraModal] = useState(false);
 
-  // 🔥 Nuevo estado para AlertDialog
   const [dialog, setDialog] = useState({
     open: false,
     title: "",
@@ -29,6 +30,7 @@ export default function BusquedaPacientePorRostro({
   });
 
   const showDialog = (title, message, type = "info") => {
+    if (!showOwnDialogs) return;
     setDialog({ open: true, title, message, type });
   };
 
@@ -84,84 +86,101 @@ export default function BusquedaPacientePorRostro({
     }
   };
 
+  const contenido = (
+    <>
+      {!embedded && (
+        <p
+          className="sis-text-muted"
+          style={{ marginTop: 0, marginBottom: 16 }}
+        >
+          {descripcion}
+        </p>
+      )}
+
+      {embedded && descripcion && (
+        <p
+          className="sis-text-muted"
+          style={{ marginTop: 0, marginBottom: 16 }}
+        >
+          {descripcion}
+        </p>
+      )}
+
+      <div className="sis-form-group">
+        <label className="sis-form-label">Imagen del rostro</label>
+        <input
+          className="sis-form-control"
+          type="file"
+          accept="image/*"
+          disabled={disabled || buscando}
+          onChange={(e) => cargarArchivo(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      <div className="sis-page-actions" style={{ marginTop: 12 }}>
+        <button
+          type="button"
+          className="sis-btn sis-btn-primary sis-btn-sm"
+          disabled={disabled || buscando}
+          onClick={() => setOpenCameraModal(true)}
+        >
+          Tomar foto
+        </button>
+
+        <button
+          type="button"
+          className="sis-btn sis-btn-outline sis-btn-sm"
+          disabled={disabled || buscando}
+          onClick={limpiar}
+        >
+          Limpiar
+        </button>
+      </div>
+
+      {vistaPrevia && (
+        <div
+          className="sis-biometria-preview-wrap"
+          style={{ marginTop: 16 }}
+        >
+          <img
+            src={vistaPrevia}
+            alt="Vista previa del rostro"
+            className="sis-biometria-preview"
+          />
+        </div>
+      )}
+
+      <div className="sis-page-actions" style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="sis-btn sis-btn-primary"
+          disabled={disabled || buscando || !archivo}
+          onClick={buscar}
+        >
+          {buscando ? "Buscando..." : "Buscar por rostro"}
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <>
-      <section
-        className="sis-card sis-section-card"
-        style={{ marginTop: "16px" }}
-      >
-        <div className="sis-section-header">
-          <div>
-            <h3 className="sis-section-title">{titulo}</h3>
-          </div>
-        </div>
-
-        <div className="sis-card-body">
-          <p
-            className="sis-text-muted"
-            style={{ marginTop: 0, marginBottom: 16 }}
-          >
-            {descripcion}
-          </p>
-
-          <div className="sis-form-group">
-            <label className="sis-form-label">Imagen del rostro</label>
-            <input
-              className="sis-form-control"
-              type="file"
-              accept="image/*"
-              disabled={disabled || buscando}
-              onChange={(e) =>
-                cargarArchivo(e.target.files?.[0] || null)
-              }
-            />
-          </div>
-
-          <div className="sis-page-actions" style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className="sis-btn sis-btn-primary sis-btn-sm"
-              disabled={disabled || buscando}
-              onClick={() => setOpenCameraModal(true)}
-            >
-              Tomar foto
-            </button>
-
-            <button
-              type="button"
-              className="sis-btn sis-btn-outline sis-btn-sm"
-              disabled={disabled || buscando}
-              onClick={limpiar}
-            >
-              Limpiar
-            </button>
-          </div>
-
-          {vistaPrevia && (
-            <div
-              className="sis-biometria-preview-wrap"
-              style={{ marginTop: 16 }}
-            >
-              <img
-                src={vistaPrevia}
-                alt="Vista previa del rostro"
-                className="sis-biometria-preview"
-              />
+      {embedded ? (
+        <div>{contenido}</div>
+      ) : (
+        <section
+          className="sis-card sis-section-card"
+          style={{ marginTop: "16px" }}
+        >
+          <div className="sis-section-header">
+            <div>
+              <h3 className="sis-section-title">{titulo}</h3>
             </div>
-          )}
-
-          <div className="sis-page-actions" style={{ marginTop: 16 }}>
-            <button
-              type="button"
-              className="sis-btn sis-btn-primary"
-              disabled={disabled || buscando || !archivo}
-              onClick={buscar}
-            >
-              {buscando ? "Buscando..." : "Buscar por rostro"}
-            </button>
           </div>
-        </div>
-      </section>
+
+          <div className="sis-card-body">{contenido}</div>
+        </section>
+      )}
 
       <BiometriaRostroModal
         open={openCameraModal}
@@ -172,7 +191,6 @@ export default function BusquedaPacientePorRostro({
         }}
       />
 
-      {/* 🔥 AlertDialog */}
       <AlertDialog
         open={dialog.open}
         title={dialog.title}

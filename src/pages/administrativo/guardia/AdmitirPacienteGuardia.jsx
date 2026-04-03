@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { obtenerPacientePorDni, actualizarPacientePorDni } from "../../../api/pacientesApi";
+import { actualizarPacientePorDni } from "../../../api/pacientesApi";
 import { crearEpisodio } from "../../../api/episodiosApi";
 import { useAuth } from "../../../context/AuthContext";
-import BusquedaPacientePorRostro from "../../../components/BusquedaPacientePorRostro";
 import AlertDialog from "../../../components/AlertDialog";
+import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
 
 const initialForm = {
   dni: "",
@@ -89,11 +89,10 @@ export default function AdmitirPacienteGuardia() {
   const [pacienteActualizado, setPacienteActualizado] = useState(null);
   const [episodioCreado, setEpisodioCreado] = useState(null);
 
-  const [loadingBuscar, setLoadingBuscar] = useState(false);
   const [loadingGuardarYAdmitir, setLoadingGuardarYAdmitir] = useState(false);
   const [dialog, setDialog] = useState(initialDialog);
 
-  const disabledGeneral = loadingBuscar || loadingGuardarYAdmitir;
+  const disabledGeneral = loadingGuardarYAdmitir;
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
 
   const mostrarDialogo = ({
@@ -125,6 +124,36 @@ export default function AdmitirPacienteGuardia() {
       title: "Paciente encontrado",
       message: `Se encontró un paciente por ${origen}. Verificá o actualizá los datos y luego generá la admisión.`,
       type: "success",
+    });
+  };
+
+  const manejarPacienteNoEncontrado = (_, err) => {
+    if (err?.validation) {
+      mostrarDialogo({
+        title: "Error",
+        message: err.message || "DNI inválido.",
+        type: "error",
+      });
+      return;
+    }
+
+    const status = err?.response?.status;
+    const msg = parseBackendMessage(err);
+
+    if (status === 400 && msg.includes("No existe paciente con DNI")) {
+      mostrarDialogo({
+        title: "Paciente no encontrado",
+        message:
+          "El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente.",
+        type: "warning",
+      });
+      return;
+    }
+
+    mostrarDialogo({
+      title: "Error al buscar paciente",
+      message: msg || "Error al buscar paciente.",
+      type: "error",
     });
   };
 
@@ -163,6 +192,14 @@ export default function AdmitirPacienteGuardia() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleDniChange = (value) => {
+    setForm((prev) => ({ ...prev, dni: value }));
+    setPacienteOriginal(null);
+    setPacienteActualizado(null);
+    setEpisodioCreado(null);
+    cerrarDialogo();
+  };
+
   const cargarPacienteEnFormulario = (paciente) => {
     setForm({
       dni: paciente?.dni || "",
@@ -174,50 +211,6 @@ export default function AdmitirPacienteGuardia() {
       estadoPersona: paciente?.estadoPersona || "",
       nroHistoriaClinica: paciente?.nroHistoriaClinica || "",
     });
-  };
-
-  const buscarPaciente = async () => {
-    cerrarDialogo();
-    setPacienteOriginal(null);
-    setPacienteActualizado(null);
-    setEpisodioCreado(null);
-
-    const dniLimpio = limpiarDni(form.dni);
-    if (!dniLimpio) {
-      mostrarDialogo({
-        title: "Error",
-        message: "DNI inválido.",
-        type: "error",
-      });
-      return;
-    }
-
-    setLoadingBuscar(true);
-    try {
-      const paciente = await obtenerPacientePorDni(dniLimpio);
-      cargarPacienteEncontrado(paciente, "DNI");
-    } catch (err) {
-      const status = err?.response?.status;
-      const msg = parseBackendMessage(err);
-
-      if (status === 400 && msg.includes("No existe paciente con DNI")) {
-        mostrarDialogo({
-          title: "Paciente no encontrado",
-          message:
-            "El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente.",
-          type: "warning",
-        });
-        return;
-      }
-
-      mostrarDialogo({
-        title: "Error al buscar paciente",
-        message: msg || "Error al buscar paciente.",
-        type: "error",
-      });
-    } finally {
-      setLoadingBuscar(false);
-    }
   };
 
   const guardarCambiosYAdmitir = async (e) => {
@@ -323,45 +316,13 @@ export default function AdmitirPacienteGuardia() {
           </div>
 
           <div className="sis-card-body">
-            <div className="sis-form-grid">
-              <div className="sis-form-group">
-                <label className="sis-form-label">DNI</label>
-                <input
-                  className="sis-form-control"
-                  name="dni"
-                  value={form.dni}
-                  onChange={onChange}
-                  placeholder="Ingresa el dni a buscar..."
-                  disabled={disabledGeneral}
-                />
-              </div>
-            </div>
-
-            <div className="sis-page-actions" style={{ marginTop: "16px" }}>
-              <button
-                type="button"
-                className="sis-btn sis-btn-primary"
-                onClick={buscarPaciente}
-                disabled={disabledGeneral}
-              >
-                {loadingBuscar ? "Buscando..." : "Buscar paciente"}
-              </button>
-
-              <button
-                type="button"
-                className="sis-btn sis-btn-outline"
-                onClick={resetTodo}
-                disabled={disabledGeneral}
-              >
-                Limpiar campos
-              </button>
-            </div>
-
-            <BusquedaPacientePorRostro
+            <BuscadorPacienteUniversal
+              dniValue={form.dni}
+              onDniChange={handleDniChange}
+              onPacienteEncontrado={cargarPacienteEncontrado}
+              onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
+              onReset={resetTodo}
               disabled={disabledGeneral}
-              onPacienteEncontrado={(paciente) => cargarPacienteEncontrado(paciente, "rostro")}
-              titulo="Buscar paciente por rostro"
-              descripcion="Además de la búsqueda por DNI, también podés tomar una foto o seleccionar una imagen para identificar al paciente."
             />
           </div>
         </section>
@@ -509,4 +470,4 @@ export default function AdmitirPacienteGuardia() {
       />
     </>
   );
-}
+};

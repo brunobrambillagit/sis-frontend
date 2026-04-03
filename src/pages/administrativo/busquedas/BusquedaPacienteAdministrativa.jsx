@@ -1,11 +1,9 @@
 import { useState } from "react";
 import {
-  obtenerPacientePorDni,
   actualizarPacientePorDni,
 } from "../../../api/pacientesApi";
 
-import BusquedaPacientePorRostro from "../../../components/BusquedaPacientePorRostro";
-import BusquedaPacientePorHuellaMock from "../../../components/BusquedaPacientePorHuellaMock";
+import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
 
 import AlertDialog from "../../../components/AlertDialog";
 import ConfirmDialog from "../../../components/ConfirmDialog";
@@ -51,27 +49,19 @@ function calcularEdadDesdeFecha(fechaNacimiento) {
   return edad >= 0 ? String(edad) : "";
 }
 
+function parseBackendMessage(err) {
+  const data = err?.response?.data;
+  if (typeof data === "string") return data;
+  return data?.message || data?.error || data?.mensaje || "";
+}
+
 export default function BusquedaPacienteAdministrativa() {
   const [form, setForm] = useState(initialForm);
   const [paciente, setPaciente] = useState(null);
 
-  const [loadingBuscar, setLoadingBuscar] = useState(false);
   const [loadingGuardar, setLoadingGuardar] = useState(false);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const [accordionOpen, setAccordionOpen] = useState({
-    dni: false,
-    rostro: false,
-    huella: false,
-  });
-
-  const toggleAccordion = (section) => {
-    setAccordionOpen((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
 
   const resetFormulario = () => {
     setForm(initialForm);
@@ -93,8 +83,6 @@ export default function BusquedaPacienteAdministrativa() {
   const cerrarDialogo = () => {
     setDialog((prev) => ({ ...prev, open: false }));
   };
-
-  const limpiarDni = (value) => (value || "").replace(/\D/g, "");
 
   const cargarPaciente = (p, origen = "DNI") => {
     const fechaFormateada = toDateInputValue(p.fechaNacimiento);
@@ -120,27 +108,28 @@ export default function BusquedaPacienteAdministrativa() {
     );
   };
 
-  const buscarPaciente = async () => {
-    const dni = limpiarDni(form.dni);
-
-    if (!dni) {
-      showDialog("Error", "DNI inválido", "error");
+  const manejarPacienteNoEncontrado = (_, err) => {
+    if (err?.validation) {
+      showDialog("Error", err.message || "DNI inválido.", "error");
       return;
     }
 
-    try {
-      setLoadingBuscar(true);
-      const data = await obtenerPacientePorDni(dni);
-      cargarPaciente(data);
-    } catch (err) {
+    const msg = parseBackendMessage(err);
+
+    if (err?.response?.status === 400 && msg.includes("No existe paciente con DNI")) {
       showDialog(
         "Paciente no encontrado",
         "No existe paciente con ese DNI",
         "warning"
       );
-    } finally {
-      setLoadingBuscar(false);
+      return;
     }
+
+    showDialog(
+      "Error",
+      msg || "No se pudo buscar el paciente.",
+      "error"
+    );
   };
 
   const guardar = async () => {
@@ -186,6 +175,13 @@ export default function BusquedaPacienteAdministrativa() {
     }));
   };
 
+  const handleDniChange = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      dni: value,
+    }));
+  };
+
   return (
     <>
       <Header />
@@ -197,108 +193,13 @@ export default function BusquedaPacienteAdministrativa() {
           </div>
 
           <div className="sis-card-body">
-            {/* ACORDEÓN DNI */}
-            <div className="sis-accordion-item" style={{ marginBottom: 16 }}>
-              <button
-                type="button"
-                className="sis-btn sis-btn-outline"
-                style={{
-                  width: "100%",
-                  justifyContent: "space-between",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                onClick={() => toggleAccordion("dni")}
-              >
-                <span>Búsqueda por DNI</span>
-                <span>{accordionOpen.dni ? "▲" : "▼"}</span>
-              </button>
-
-              {accordionOpen.dni && (
-                <div style={{ marginTop: 12 }}>
-                  <div className="sis-form-grid">
-                    <div className="sis-form-group">
-                      <label className="sis-form-label">DNI</label>
-                      <input
-                        className="sis-form-control"
-                        name="dni"
-                        value={form.dni}
-                        onChange={onChange}
-                        placeholder="DNI..."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sis-page-actions" style={{ marginTop: 10 }}>
-                    <button
-                      className="sis-btn sis-btn-primary"
-                      onClick={buscarPaciente}
-                    >
-                      {loadingBuscar ? "Buscando..." : "Buscar"}
-                    </button>
-
-                    <button
-                      className="sis-btn sis-btn-outline"
-                      onClick={resetFormulario}
-                    >
-                      Limpiar
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ACORDEÓN ROSTRO */}
-            <div className="sis-accordion-item" style={{ marginBottom: 16 }}>
-              <button
-                type="button"
-                className="sis-btn sis-btn-outline"
-                style={{
-                  width: "100%",
-                  justifyContent: "space-between",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                onClick={() => toggleAccordion("rostro")}
-              >
-                <span>Búsqueda por rostro</span>
-                <span>{accordionOpen.rostro ? "▲" : "▼"}</span>
-              </button>
-
-              {accordionOpen.rostro && (
-                <div style={{ marginTop: 12 }}>
-                  <BusquedaPacientePorRostro
-                    onPacienteEncontrado={(p) => cargarPaciente(p, "rostro")}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* ACORDEÓN HUELLA */}
-            <div className="sis-accordion-item">
-              <button
-                type="button"
-                className="sis-btn sis-btn-outline"
-                style={{
-                  width: "100%",
-                  justifyContent: "space-between",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                onClick={() => toggleAccordion("huella")}
-              >
-                <span>Búsqueda por huella</span>
-                <span>{accordionOpen.huella ? "▲" : "▼"}</span>
-              </button>
-
-              {accordionOpen.huella && (
-                <div style={{ marginTop: 12 }}>
-                  <BusquedaPacientePorHuellaMock
-                    onPacienteEncontrado={(p) => cargarPaciente(p, "huella")}
-                  />
-                </div>
-              )}
-            </div>
+            <BuscadorPacienteUniversal
+              dniValue={form.dni}
+              onDniChange={handleDniChange}
+              onPacienteEncontrado={cargarPaciente}
+              onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
+              onReset={resetFormulario}
+            />
           </div>
         </section>
 
