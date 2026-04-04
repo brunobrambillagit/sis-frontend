@@ -170,7 +170,7 @@ export default function EpisodiosActivosTableHospitalizacion() {
     <div className="sis-page">
       <div className="sis-page-header">
         <div className="sis-page-title-wrap">
-          <h2 className="sis-page-title">Lista de pacientes Hospitalizados</h2>
+          <h2 className="sis-page-title">Lista de pacientes en Hospitalizacion</h2>
           <p className="sis-page-subtitle"></p>
         </div>
 

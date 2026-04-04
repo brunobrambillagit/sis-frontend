@@ -13,7 +13,7 @@ import ListaPacientesHospitalizacionAdmin from "../pages/administrativo/hospital
 
 import AdmisionGuardia from "../pages/administrativo/guardia/AdmisionGuardia";
 import AdmisionConsultorios from "../pages/administrativo/consultorios/AdmisionConsultorios";
-import AgendasConsultorios from "../pages/administrativo/consultorios/AgendasConsultorios";
+import AgendasConsultorios from "../pages/admin/agendas/AgendasConsultorios";
 import AdmisionHospitalizacion from "../pages/administrativo/hospitalizacion/AdmisionHospitalizacion";
 import CambiarCamaHospitalizacionAdmin from "../pages/administrativo/hospitalizacion/CambiarCamaHospitalizacion";
 import HistorialTrasladosHospitalizacionAdmin from "../pages/administrativo/hospitalizacion/HistorialTrasladosHospitalizacion";
@@ -63,7 +63,6 @@ export default function AppRouter() {
 
         <Route path="consultorios" element={<ListaEsperaConsultoriosAdmin />} />
         <Route path="consultorios/admision" element={<AdmisionConsultorios />} />
-        <Route path="consultorios/agendas" element={<AgendasConsultorios />} />
         <Route path="consultorios/crear-paciente" element={<CrearPacienteConsultorios />} />
 
         <Route path="hospitalizacion" element={<ListaPacientesHospitalizacionAdmin />} />

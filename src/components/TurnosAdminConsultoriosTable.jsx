@@ -362,13 +362,6 @@ export default function TurnosAdminConsultoriosTable() {
         </button>
 
           <button
-            className="sis-btn sis-btn-outline"
-            onClick={() => navigate("/administrativo/consultorios/agendas")}
-          >
-            Administrar agendas
-          </button>
-
-          <button
             className="sis-btn sis-btn-primary"
             onClick={() => navigate("/administrativo/consultorios/admision")}
           >
