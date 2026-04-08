@@ -202,49 +202,91 @@ export default function AltaPaciente({
   };
 
   const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
-    setPacienteEncontrado(paciente);
-    setPacienteCreado(null);
-    setModo("encontrado");
-    setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
-    cargarPacienteEnFormulario(paciente);
-    setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
-    setErrorMsg("");
-    setWarningMsg("");
+  setPacienteEncontrado(paciente);
+  setPacienteCreado(null);
+  setModo("encontrado");
+  setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
+  cargarPacienteEnFormulario(paciente);
+  setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
+  setErrorMsg("");
+  setWarningMsg("");
 
-    setOpenSections({
-      verificacion: true,
-      datos: true,
-      biometria: false,
-      resumen: false,
-    });
+  setOpenSections({
+    verificacion: true,
+    datos: true,
+    biometria: false,
+    resumen: false,
+  });
+
+  let mensaje = `El paciente fue encontrado correctamente por ${origen}.`;
+
+  if (paciente?.nombre || paciente?.apellido) {
+    mensaje += ` Paciente: ${paciente?.apellido || ""}${
+      paciente?.apellido && paciente?.nombre ? ", " : ""
+    }${paciente?.nombre || ""}.`;
+  }
+
+  if (paciente?.dni) {
+    mensaje += ` DNI: ${paciente.dni}.`;
+  }
+
+  if (paciente?.nroHistoriaClinica) {
+    mensaje += ` N° Historia Clínica: ${paciente.nroHistoriaClinica}.`;
+  }
+
+  openAlertDialog({
+    title: "Paciente encontrado",
+    message: mensaje,
+    type: "success",
+    buttonText: "Aceptar",
+  });
   };
 
   const manejarPacienteNoEncontrado = (dniLimpio, err) => {
-    setLoadingBuscar(false);
-    setNroHistoriaClinica(null);
-    setPacienteEncontrado(null);
-    setPacienteCreado(null);
+  setLoadingBuscar(false);
+  setNroHistoriaClinica(null);
+  setPacienteEncontrado(null);
+  setPacienteCreado(null);
 
-    if (err?.validation) {
-      setErrorMsg(err.message || "DNI inválido.");
-      return;
-    }
+  if (err?.validation) {
+    setErrorMsg(err.message || "DNI inválido.");
+    openAlertDialog({
+      title: "Búsqueda inválida",
+      message: err.message || "El DNI ingresado no es válido.",
+      type: "warning",
+      buttonText: "Aceptar",
+    });
+    return;
+  }
 
-    const status = err?.response?.status;
-    const msg = parseBackendMessage(err);
+  const status = err?.response?.status;
+  const msg = parseBackendMessage(err);
 
-    if (status === 400 && msg.includes("No existe paciente con DNI")) {
-      setModo("nuevo");
-      setForm((prev) => ({ ...prev, dni: dniLimpio }));
-      setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
-      setErrorMsg("");
-      setWarningMsg("");
-      expandirFlujoAlta();
-      return;
-    }
+  if (status === 400 && msg.includes("No existe paciente con DNI")) {
+    setModo("nuevo");
+    setForm((prev) => ({ ...prev, dni: dniLimpio }));
+    setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
+    setErrorMsg("");
+    setWarningMsg("");
+    expandirFlujoAlta();
 
-    setErrorMsg(msg || "Error al buscar paciente.");
-  };
+    openAlertDialog({
+      title: "Paciente no encontrado",
+      message: `No se encontró ningún paciente con el DNI ${dniLimpio}. Podés completar los datos para darlo de alta.`,
+      type: "info",
+      buttonText: "Aceptar",
+    });
+    return;
+  }
+
+  setErrorMsg(msg || "Error al buscar paciente.");
+  openAlertDialog({
+    title: "Error en la búsqueda",
+    message: msg || "Ocurrió un error al buscar paciente.",
+    type: "error",
+    buttonText: "Aceptar",
+  });
+};
 
   const setSectionOpen = (sectionKey, nextValue) => {
     setOpenSections((prev) => ({
