@@ -176,6 +176,8 @@ export default function EpisodiosMedicoTable({
     return <span className="sis-text-muted">Sin acciones</span>;
   };
 
+  const puedeEvolucionar = (ep) => ep.estadoAtencion === "EN_ATENCION";
+
   const episodiosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
@@ -260,7 +262,7 @@ export default function EpisodiosMedicoTable({
                     <option value="EN_ESPERA">En espera</option>
                     <option value="EN_ATENCION">En atención</option>
                     <option value="FINALIZADO">Finalizado</option>
-                    <option value="ALTA">Alta</option>
+                    {/* <option value="ALTA">Alta</option> */}
                   </select>
                 </div>
 
@@ -313,37 +315,47 @@ export default function EpisodiosMedicoTable({
                   </tr>
                 </thead>
                 <tbody>
-                  {episodiosFiltrados.map((ep) => (
-                    <tr key={ep.episodioId}>
-                      <td className="sis-cell-strong">{ep.episodioId}</td>
-                      <td>{ep.dni || "-"}</td>
-                      <td>{ep.apellido || "-"}</td>
-                      <td>{ep.nombre || "-"}</td>
-                      <td>
-                        <span className={obtenerClaseEstado(ep.estadoAtencion)}>
-                          {formatearEstado(ep.estadoAtencion)}
-                        </span>
-                      </td>
-                      <td className="sis-cell-muted">
-                        {formatearFecha(ep.fechaIngreso)}
-                      </td>
-                      <td className="sis-actions-cell">
-                        <div className="sis-actions-group">
-                          {renderAccionesEstado(ep)}
-                        </div>
-                      </td>
-                      <td className="sis-actions-cell">
-                        <div className="sis-actions-group">
-                          <button
-                            className="sis-btn sis-btn-outline sis-btn-sm"
-                            onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
-                          >
-                            Evolucionar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {episodiosFiltrados.map((ep) => {
+                    const evolucionHabilitada = puedeEvolucionar(ep);
+
+                    return (
+                      <tr key={ep.episodioId}>
+                        <td className="sis-cell-strong">{ep.episodioId}</td>
+                        <td>{ep.dni || "-"}</td>
+                        <td>{ep.apellido || "-"}</td>
+                        <td>{ep.nombre || "-"}</td>
+                        <td>
+                          <span className={obtenerClaseEstado(ep.estadoAtencion)}>
+                            {formatearEstado(ep.estadoAtencion)}
+                          </span>
+                        </td>
+                        <td className="sis-cell-muted">
+                          {formatearFecha(ep.fechaIngreso)}
+                        </td>
+                        <td className="sis-actions-cell">
+                          <div className="sis-actions-group">
+                            {renderAccionesEstado(ep)}
+                          </div>
+                        </td>
+                        <td className="sis-actions-cell">
+                          <div className="sis-actions-group">
+                            <button
+                              className="sis-btn sis-btn-outline sis-btn-sm"
+                              disabled={!evolucionHabilitada}
+                              title={
+                                evolucionHabilitada
+                                  ? "Abrir evolución médica"
+                                  : "Primero debés presionar Habilitar evolución"
+                              }
+                              onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
+                            >
+                              Evolucionar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -351,16 +363,16 @@ export default function EpisodiosMedicoTable({
         </div>
       </div>
 
-                  <ConfirmDialog
-                    open={modalConfirmacion.abierto}
-                    title="Confirmar finalizacion "
-                    message={`¿Realmente querés finalizar la evolucion${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
-                    onConfirm={confirmarFinalizacion}
-                    onCancel={cerrarConfirmacionFinalizar}
-                    confirmText="Sí, finalizar"
-                    cancelText="No"
-                    loading={procesandoId === modalConfirmacion.turnoId}
-                  />
+      <ConfirmDialog
+        open={modalConfirmacion.abierto}
+        title="Confirmar finalizacion "
+        message={`¿Realmente querés finalizar la evolucion${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
+        onConfirm={confirmarFinalizacion}
+        onCancel={cerrarConfirmacionFinalizar}
+        confirmText="Sí, finalizar"
+        cancelText="No"
+        loading={procesandoId === modalConfirmacion.episodioId}
+      />
     </div>
   );
 }

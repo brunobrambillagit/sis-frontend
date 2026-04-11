@@ -4,6 +4,7 @@ import { crearEpisodio } from "../../../api/episodiosApi";
 import { useAuth } from "../../../context/AuthContext";
 import AlertDialog from "../../../components/AlertDialog";
 import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
+import { useNavigate } from "react-router-dom";
 
 const initialForm = {
   dni: "",
@@ -82,6 +83,8 @@ function parseBackendMessage(err) {
 }
 
 export default function AdmitirPacienteGuardia() {
+  const navigate = useNavigate();
+
   const { usuario } = useAuth();
 
   const [form, setForm] = useState(initialForm);
@@ -111,7 +114,13 @@ export default function AdmitirPacienteGuardia() {
   };
 
   const cerrarDialogo = () => {
+    const esExito = dialog.type === "success" && dialog.title === "Admisión generada";
+
     setDialog(initialDialog);
+
+    if (esExito) {
+      navigate(-1); // vuelve a la pestaña anterior
+    }
   };
 
   const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
@@ -291,7 +300,7 @@ export default function AdmitirPacienteGuardia() {
 
       mostrarDialogo({
         title: "Admisión generada",
-        message: `Paciente actualizado y admisión de guardia generada correctamente. ID episodio: ${episodio.id}.`,
+        message: `Paciente actualizado y admisión de guardia generada correctamente..`,
         type: "success",
       });
     } catch (err) {
@@ -435,7 +444,7 @@ export default function AdmitirPacienteGuardia() {
                   </div>
 
                   <div className="sis-detail-item">
-                    <span className="sis-detail-label">Fecha alta</span>
+                    <span className="sis-detail-label">Fecha alta paciente</span>
                     <div className="sis-detail-value">{pacienteActivo.fechaAlta || "-"}</div>
                   </div>
 

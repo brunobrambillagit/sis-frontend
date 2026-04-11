@@ -347,6 +347,7 @@ export default function EpisodiosMedicoTableHospitalizacion({
                         <div className="sis-actions-group">
                           <button
                             className="sis-btn sis-btn-outline sis-btn-sm"
+                            disabled={ep.estadoAtencion !== "EN_ATENCION"}
                             onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
                           >
                             Evolucionar

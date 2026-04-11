@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";import Header from "../../components/Header";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import Header from "../../components/Header";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import AlertDialog from "../../components/AlertDialog";
 import {
   agregarEvolucionEpisodio,
   agregarObservacionEpisodio,
@@ -9,7 +11,17 @@ import {
 } from "../../api/episodiosDetalleApi";
 
 function formatearFecha(fecha) {
-  return fecha ? new Date(fecha).toLocaleString("es-AR") : "-";
+  if (!fecha) return "-";
+
+  return new Date(fecha).toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false, // 👈 CLAVE
+  });
 }
 
 function obtenerClaseEstado(estado) {
@@ -42,6 +54,14 @@ function formatearEstado(estado) {
   }
 }
 
+const initialAlertDialog = {
+  open: false,
+  title: "Aviso",
+  message: "",
+  type: "info",
+  buttonText: "Aceptar",
+};
+
 export default function EpisodioDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -69,9 +89,32 @@ export default function EpisodioDetalle() {
   const [guardandoEvolucion, setGuardandoEvolucion] = useState(false);
 
   const [evolucionesAbiertas, setEvolucionesAbiertas] = useState({});
+  const [modalConfirmacionObservacion, setModalConfirmacionObservacion] = useState({
+    abierto: false,
+  });
   const [modalConfirmacionEvolucion, setModalConfirmacionEvolucion] = useState({
     abierto: false,
   });
+  const [dialog, setDialog] = useState(initialAlertDialog);
+
+  const mostrarDialogo = ({
+    title = "Aviso",
+    message = "",
+    type = "info",
+    buttonText = "Aceptar",
+  }) => {
+    setDialog({
+      open: true,
+      title,
+      message,
+      type,
+      buttonText,
+    });
+  };
+
+  const cerrarDialogo = () => {
+    setDialog(initialAlertDialog);
+  };
 
   const cargarDetalle = async () => {
     try {
@@ -91,16 +134,42 @@ export default function EpisodioDetalle() {
     cargarDetalle();
   }, [id]);
 
-  const handleGuardarObservacion = async (e) => {
+  const abrirConfirmacionGuardarObservacion = (e) => {
     e.preventDefault();
 
     if (!usuario?.id) {
-      alert("No se encontró el usuario logueado.");
+      mostrarDialogo({
+        title: "Error",
+        message: "No se encontró el usuario logueado.",
+        type: "error",
+      });
       return;
     }
 
     if (!observacion.trim()) {
-      alert("Ingresá una observación.");
+      mostrarDialogo({
+        title: "Atención",
+        message: "Ingresá una observación.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setModalConfirmacionObservacion({ abierto: true });
+  };
+
+  const cerrarConfirmacionGuardarObservacion = () => {
+    if (guardandoObservacion) return;
+    setModalConfirmacionObservacion({ abierto: false });
+  };
+
+  const confirmarGuardarObservacion = async () => {
+    if (!usuario?.id) {
+      mostrarDialogo({
+        title: "Error",
+        message: "No se encontró el usuario logueado.",
+        type: "error",
+      });
       return;
     }
 
@@ -113,14 +182,26 @@ export default function EpisodioDetalle() {
       });
 
       setObservacion("");
+      cerrarConfirmacionGuardarObservacion();
       await cargarDetalle();
+
+      mostrarDialogo({
+        title: "Observación guardada",
+        message: "La observación se guardó correctamente.",
+        type: "success",
+      });
     } catch (err) {
       console.error(err);
       const mensaje =
         err?.response?.data?.message ||
         err?.response?.data ||
         "No se pudo guardar la observación.";
-      alert(mensaje);
+
+      mostrarDialogo({
+        title: "Error al guardar observación",
+        message: mensaje,
+        type: "error",
+      });
     } finally {
       setGuardandoObservacion(false);
     }
@@ -138,7 +219,11 @@ export default function EpisodioDetalle() {
     e.preventDefault();
 
     if (!usuario?.id) {
-      alert("No se encontró el usuario logueado.");
+      mostrarDialogo({
+        title: "Error",
+        message: "No se encontró el usuario logueado.",
+        type: "error",
+      });
       return;
     }
 
@@ -148,7 +233,11 @@ export default function EpisodioDetalle() {
       !formEvolucion.medicacionIndicaciones.trim() &&
       !formEvolucion.estudiosSolicitados.trim()
     ) {
-      alert("Completá al menos un campo de la evolución.");
+      mostrarDialogo({
+        title: "Atención",
+        message: "Completá al menos un campo de la evolución.",
+        type: "warning",
+      });
       return;
     }
 
@@ -162,7 +251,11 @@ export default function EpisodioDetalle() {
 
   const confirmarGuardarEvolucion = async () => {
     if (!usuario?.id) {
-      alert("No se encontró el usuario logueado.");
+      mostrarDialogo({
+        title: "Error",
+        message: "No se encontró el usuario logueado.",
+        type: "error",
+      });
       return;
     }
 
@@ -186,13 +279,24 @@ export default function EpisodioDetalle() {
 
       cerrarConfirmacionGuardarEvolucion();
       await cargarDetalle();
+
+      mostrarDialogo({
+        title: "Evolución guardada",
+        message: "La evolución se guardó correctamente.",
+        type: "success",
+      });
     } catch (err) {
       console.error(err);
       const mensaje =
         err?.response?.data?.message ||
         err?.response?.data ||
         "No se pudo guardar la evolución.";
-      alert(mensaje);
+
+      mostrarDialogo({
+        title: "Error al guardar evolución",
+        message: mensaje,
+        type: "error",
+      });
     } finally {
       setGuardandoEvolucion(false);
     }
@@ -338,7 +442,7 @@ export default function EpisodioDetalle() {
                 </div>
 
                 <div className="sis-card-body">
-                  <form onSubmit={handleGuardarObservacion} className="sis-form">
+                  <form onSubmit={abrirConfirmacionGuardarObservacion} className="sis-form">
                     <div className="sis-form-group">
                       <label className="sis-form-label">Observación</label>
                       <textarea
@@ -552,6 +656,17 @@ export default function EpisodioDetalle() {
       </div>
 
       <ConfirmDialog
+        open={modalConfirmacionObservacion.abierto}
+        title="Confirmar guardado de observación"
+        message="¿Estas seguro de querer guardar esta observación?"
+        onConfirm={confirmarGuardarObservacion}
+        onCancel={cerrarConfirmacionGuardarObservacion}
+        confirmText="Sí, guardar"
+        cancelText="No"
+        loading={guardandoObservacion}
+      />
+
+      <ConfirmDialog
         open={modalConfirmacionEvolucion.abierto}
         title="Confirmar guardado de evolución"
         message="¿Realmente querés firmar y guardar esta evolucion?"
@@ -560,6 +675,15 @@ export default function EpisodioDetalle() {
         confirmText="Sí, guardar"
         cancelText="No"
         loading={guardandoEvolucion}
+      />
+
+      <AlertDialog
+        open={dialog.open}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        buttonText={dialog.buttonText}
+        onClose={cerrarDialogo}
       />
     </>
   );

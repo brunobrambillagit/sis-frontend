@@ -236,7 +236,7 @@ export default function EpisodiosActivosTableGuardia({
                     <option value="EN_ESPERA">En espera</option>
                     <option value="EN_ATENCION">En atención</option>
                     <option value="FINALIZADO">Finalizado</option>
-                    <option value="ALTA">Alta</option>
+                    {/* <option value="ALTA">Alta</option> */}
                   </select>
                 </div>
 

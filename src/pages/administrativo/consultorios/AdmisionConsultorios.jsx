@@ -47,24 +47,60 @@ export default function AdmisionConsultorios() {
   const [guardando, setGuardando] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openAlert, setOpenAlert] = useState(false);
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "Aviso",
+    message: "",
+    type: "info",
+  });
+
+  const mostrarDialogo = ({ title, message, type = "info" }) => {
+    setDialog({ open: true, title, message, type });
+  };
+
+  const cerrarDialogo = () => {
+    setDialog({ open: false, title: "", message: "", type: "info" });
+  };
 
   const handlePacienteEncontrado = (data) => {
     setPaciente(data);
     setDniBusqueda(data?.dni || "");
     setErrorPaciente("");
+
+    mostrarDialogo({
+      title: "Paciente encontrado",
+      message: `Se encontró el paciente ${data.apellido} ${data.nombre}.`,
+      type: "success",
+    });
   };
 
   const manejarPacienteNoEncontrado = (_, err) => {
+    setPaciente(null);
+
     if (err?.validation) {
-      setErrorPaciente(err.message || "Ingresá un DNI válido.");
-      setPaciente(null);
+      const mensaje = err.message || "Ingresá un DNI válido.";
+
+      setErrorPaciente(mensaje);
+
+      mostrarDialogo({
+        title: "Error",
+        message: mensaje,
+        type: "error",
+      });
+
       return;
     }
 
-    setPaciente(null);
-    setErrorPaciente(
-      parseBackendMessage(err) || "No se encontró un paciente con ese DNI."
-    );
+    const mensaje =
+      parseBackendMessage(err) || "No se encontró un paciente con ese DNI.";
+
+    setErrorPaciente(mensaje);
+
+    mostrarDialogo({
+      title: "Paciente no encontrado",
+      message: mensaje,
+      type: "warning",
+    });
   };
 
   const resetBusquedaPaciente = () => {
@@ -132,17 +168,17 @@ export default function AdmisionConsultorios() {
     e.preventDefault();
 
     if (!usuario?.id) {
-      alert("No se encontró el usuario logueado.");
+      mostrarDialogo({ title: "Error", message: "No se encontró el usuario logueado.", type: "error" });
       return;
     }
 
     if (!paciente?.id && !paciente?.pacienteId) {
-      alert("Buscá y seleccioná un paciente válido antes de otorgar el turno.");
+      mostrarDialogo({ title: "Atención", message: "Buscá y seleccioná un paciente válido antes de otorgar el turno.", type: "warning" });
       return;
     }
 
     if (!form.turnoId) {
-      alert("Seleccioná un turno disponible.");
+      mostrarDialogo({ title: "Atención", message: "Seleccioná un turno disponible.", type: "warning" });
       return;
     }
 
@@ -162,9 +198,7 @@ export default function AdmisionConsultorios() {
       setOpenAlert(true);
     } catch (err) {
       console.error(err);
-      alert(
-        parseBackendMessage(err) || "No se pudo otorgar el turno."
-      );
+      mostrarDialogo({ title: "Error", message: parseBackendMessage(err) || "No se pudo otorgar el turno.", type: "error" });
     } finally {
       setGuardando(false);
     }
@@ -413,6 +447,14 @@ export default function AdmisionConsultorios() {
         onClose={handleCerrarAlert}
         buttonText="Aceptar"
         type="success"
+      />
+    
+      <AlertDialog
+        open={dialog.open}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        onClose={cerrarDialogo}
       />
     </>
   );

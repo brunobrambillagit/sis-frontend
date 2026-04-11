@@ -4,6 +4,7 @@ import { crearEpisodio } from "../../../api/episodiosApi";
 import { obtenerCamasDisponiblesHospitalizacion } from "../../../api/camasApi";
 import { useAuth } from "../../../context/AuthContext";
 import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
+import AlertDialog from "../../../components/AlertDialog";
 
 const initialForm = {
   dni: "",
@@ -15,6 +16,14 @@ const initialForm = {
   estadoPersona: "",
   nroHistoriaClinica: "",
   camaId: "",
+};
+
+const initialDialog = {
+  open: false,
+  title: "Aviso",
+  message: "",
+  type: "info",
+  buttonText: "Aceptar",
 };
 
 function calcularEdadDesdeFecha(fechaNacimiento) {
@@ -88,24 +97,62 @@ export default function AdmitirPacienteHospitalizacion() {
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [dialog, setDialog] = useState(initialDialog);
 
   const disabledGeneral = loadingGuardarYAdmitir;
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
+
+  const mostrarDialogo = ({
+    title = "Aviso",
+    message = "",
+    type = "info",
+    buttonText = "Aceptar",
+  }) => {
+    setDialog({
+      open: true,
+      title,
+      message,
+      type,
+      buttonText,
+    });
+  };
+
+  const cerrarDialogo = () => {
+    setDialog(initialDialog);
+    if (esExito) {
+      navigate(-1); // vuelve a la pestaña anterior
+    }
+  };
 
   const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
     setPacienteOriginal(paciente);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
     cargarPacienteEnFormulario(paciente);
-    setSuccessMsg(
-      `Paciente encontrado por ${origen}. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión.`
-    );
+
+    const mensaje = `Paciente encontrado por ${origen}. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión.`;
+    setSuccessMsg(mensaje);
     setErrorMsg("");
+
+    mostrarDialogo({
+      title: "Paciente encontrado",
+      message: mensaje,
+      type: "success",
+    });
   };
 
   const manejarPacienteNoEncontrado = (_, err) => {
+    let mensaje = "";
+
     if (err?.validation) {
-      setErrorMsg(err.message || "DNI inválido.");
+      mensaje = err.message || "DNI inválido.";
+      setErrorMsg(mensaje);
+      setSuccessMsg("");
+      mostrarDialogo({
+        title: "Error",
+        message: mensaje,
+        type: "error",
+      });
       return;
     }
 
@@ -113,13 +160,26 @@ export default function AdmitirPacienteHospitalizacion() {
     const msg = parseBackendMessage(err);
 
     if (status === 400 && msg.includes("No existe paciente con DNI")) {
-      setErrorMsg(
-        "El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente."
-      );
+      mensaje =
+        "El paciente no existe. Para continuar, primero debés crearlo desde el apartado Crear paciente.";
+      setErrorMsg(mensaje);
+      setSuccessMsg("");
+      mostrarDialogo({
+        title: "Paciente no encontrado",
+        message: mensaje,
+        type: "warning",
+      });
       return;
     }
 
-    setErrorMsg(msg || "Error al buscar paciente.");
+    mensaje = msg || "Error al buscar paciente.";
+    setErrorMsg(mensaje);
+    setSuccessMsg("");
+    mostrarDialogo({
+      title: "Error al buscar paciente",
+      message: mensaje,
+      type: "error",
+    });
   };
 
   const puedeAdmitir = useMemo(() => {
@@ -129,6 +189,7 @@ export default function AdmitirPacienteHospitalizacion() {
   const resetAlerts = () => {
     setErrorMsg("");
     setSuccessMsg("");
+    cerrarDialogo();
   };
 
   const resetTodo = () => {
@@ -147,7 +208,13 @@ export default function AdmitirPacienteHospitalizacion() {
     } catch (err) {
       console.error(err);
       setCamasDisponibles([]);
-      setErrorMsg("No se pudieron cargar las camas disponibles.");
+      const mensaje = "No se pudieron cargar las camas disponibles.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Error",
+        message: mensaje,
+        type: "error",
+      });
     } finally {
       setLoadingCamas(false);
     }
@@ -208,34 +275,70 @@ export default function AdmitirPacienteHospitalizacion() {
     setEpisodioCreado(null);
 
     if (!usuario?.id) {
-      setErrorMsg("No se pudo obtener el usuario logueado.");
+      const mensaje = "No se pudo obtener el usuario logueado.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Error",
+        message: mensaje,
+        type: "error",
+      });
       return;
     }
 
     if (!pacienteOriginal?.id) {
-      setErrorMsg("Primero buscá un paciente existente.");
+      const mensaje = "Primero buscá un paciente existente.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Atención",
+        message: mensaje,
+        type: "warning",
+      });
       return;
     }
 
     if (!form.camaId) {
-      setErrorMsg("Debés seleccionar una cama.");
+      const mensaje = "Debés seleccionar una cama.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Atención",
+        message: mensaje,
+        type: "warning",
+      });
       return;
     }
 
     const dniLimpio = limpiarDni(form.dni || pacienteOriginal.dni);
     if (!dniLimpio) {
-      setErrorMsg("DNI inválido.");
+      const mensaje = "DNI inválido.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Error",
+        message: mensaje,
+        type: "error",
+      });
       return;
     }
 
     if (!form.nombre.trim() || !form.apellido.trim()) {
-      setErrorMsg("Nombre y apellido son obligatorios.");
+      const mensaje = "Nombre y apellido son obligatorios.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Campos obligatorios",
+        message: mensaje,
+        type: "warning",
+      });
       return;
     }
 
     const edadNumero = form.edad === "" ? null : Number(form.edad);
     if (form.edad !== "" && Number.isNaN(edadNumero)) {
-      setErrorMsg("La edad debe ser numérica.");
+      const mensaje = "La edad debe ser numérica.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Error de validación",
+        message: mensaje,
+        type: "error",
+      });
       return;
     }
 
@@ -263,210 +366,234 @@ export default function AdmitirPacienteHospitalizacion() {
 
       const episodio = await crearEpisodio(payloadEpisodio);
       setEpisodioCreado(episodio);
-      setSuccessMsg("Paciente actualizado y admisión de hospitalización generada correctamente.");
+
+      const mensaje = "Paciente actualizado y admisión de hospitalización generada correctamente.";
+      setSuccessMsg(mensaje);
+      mostrarDialogo({
+        title: "Admisión generada",
+        message: mensaje,
+        type: "success",
+      });
 
       await cargarCamas();
       setForm((prev) => ({ ...prev, camaId: "" }));
     } catch (err) {
-      setErrorMsg(parseBackendMessage(err) || "Error al actualizar y admitir al paciente.");
+      const mensaje = parseBackendMessage(err) || "Error al actualizar y admitir al paciente.";
+      setErrorMsg(mensaje);
+      mostrarDialogo({
+        title: "Error al admitir paciente",
+        message: mensaje,
+        type: "error",
+      });
     } finally {
       setLoadingGuardarYAdmitir(false);
     }
   };
 
   return (
-    <div className="sis-detail-layout">
-      <section className="sis-card sis-section-card">
-        <div className="sis-section-header">
-          <div>
-            <h3 className="sis-section-title">Buscar paciente para hospitalización</h3>
+    <>
+      <div className="sis-detail-layout">
+        <section className="sis-card sis-section-card">
+          <div className="sis-section-header">
+            <div>
+              <h3 className="sis-section-title">Buscar paciente para hospitalización</h3>
+            </div>
           </div>
-        </div>
 
-        <div className="sis-card-body">
-          {errorMsg && (
-            <div className="sis-alert sis-alert-danger" role="alert">
-              <div>{errorMsg}</div>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="sis-alert sis-alert-success" role="alert">
-              <div>{successMsg}</div>
-              {episodioCreado?.id && (
-                <div className="mt-2">
-                  <strong>ID episodio:</strong> {episodioCreado.id}
-                </div>
-              )}
-            </div>
-          )}
-
-          <BuscadorPacienteUniversal
-            dniValue={form.dni}
-            onDniChange={handleDniChange}
-            onPacienteEncontrado={cargarPacienteEncontrado}
-            onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
-            onReset={resetTodo}
-            disabled={disabledGeneral}
-          />
-        </div>
-      </section>
-
-      <section className="sis-card sis-section-card">
-        <div className="sis-section-header">
-          <div>
-            <h3 className="sis-section-title">Datos del paciente</h3>
-          </div>
-        </div>
-
-        <div className="sis-card-body">
-          <form onSubmit={guardarCambiosYAdmitir}>
-            <div className="sis-form-grid">
-              <div className="sis-form-group">
-                <label className="sis-form-label">Nombre</label>
-                <input
-                  className="sis-form-control"
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={onChange}
-                  disabled={!pacienteOriginal || disabledGeneral}
-                />
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">Apellido</label>
-                <input
-                  className="sis-form-control"
-                  name="apellido"
-                  value={form.apellido}
-                  onChange={onChange}
-                  disabled={!pacienteOriginal || disabledGeneral}
-                />
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">Fecha de nacimiento</label>
-                <input
-                  type="date"
-                  className="sis-form-control"
-                  name="fechaNacimiento"
-                  value={form.fechaNacimiento}
-                  onChange={onChange}
-                  min={obtenerFechaMinNacimiento()}
-                  max={obtenerFechaMaxNacimiento()}
-                  disabled={!pacienteOriginal || disabledGeneral}
-                />
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">Edad</label>
-                <input className="sis-form-control" name="edad" value={form.edad} disabled />
-                <small className="sis-text-muted">
-                  La edad se calcula automaticamente a partir de la fecha de nacimiento
-                </small>
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">Sexo</label>
-                <select
-                  className="sis-form-control"
-                  name="sexo"
-                  value={form.sexo}
-                  onChange={onChange}
-                  disabled={!pacienteOriginal || disabledGeneral}
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="MASCULINO">Masculino</option>
-                  <option value="FEMENINO">Femenino</option>
-                </select>
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">Estado de la persona</label>
-                <select
-                  className="sis-form-control"
-                  name="estadoPersona"
-                  value={form.estadoPersona}
-                  onChange={onChange}
-                  disabled={!pacienteOriginal || disabledGeneral}
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="VIVO">Vivo</option>
-                  <option value="FALLECIDO">Fallecido</option>
-                </select>
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">Cama asignada</label>
-                <select
-                  className="sis-form-control"
-                  name="camaId"
-                  value={form.camaId}
-                  onChange={onChange}
-                  disabled={!pacienteOriginal || disabledGeneral || loadingCamas}
-                >
-                  <option value="">Seleccionar cama</option>
-                  {camasDisponibles.map((cama) => (
-                    <option key={cama.id} value={cama.id}>
-                      {cama.codigo}
-                      {cama.descripcion ? ` - ${cama.descripcion}` : ""}
-                    </option>
-                  ))}
-                </select>
-                <small className="sis-text-muted">
-                  {loadingCamas
-                    ? "Cargando camas disponibles..."
-                    : `${camasDisponibles.length} cama(s) disponible(s)`}
-                </small>
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">DNI</label>
-                <input className="sis-form-control" name="dniReadonly" value={form.dni} disabled />
-              </div>
-
-              <div className="sis-form-group">
-                <label className="sis-form-label">N° Historia clínica</label>
-                <input
-                  className="sis-form-control"
-                  name="nroHistoriaClinica"
-                  value={form.nroHistoriaClinica}
-                  disabled
-                />
-              </div>
-            </div>
-
-            {pacienteActivo && (
-              <div className="sis-detail-grid" style={{ marginTop: "18px" }}>
-                <div className="sis-detail-item">
-                  <span className="sis-detail-label">ID paciente</span>
-                  <div className="sis-detail-value">{pacienteActivo.id || "-"}</div>
-                </div>
-
-                <div className="sis-detail-item">
-                  <span className="sis-detail-label">Fecha alta</span>
-                  <div className="sis-detail-value">{pacienteActivo.fechaAlta || "-"}</div>
-                </div>
-
-                <div className="sis-detail-item">
-                  <span className="sis-detail-label">Última modificación</span>
-                  <div className="sis-detail-value">{pacienteActivo.fechaModificacion || "-"}</div>
-                </div>
+          <div className="sis-card-body">
+            {errorMsg && (
+              <div className="sis-alert sis-alert-danger" role="alert">
+                <div>{errorMsg}</div>
               </div>
             )}
 
-            <div className="sis-page-actions" style={{ marginTop: "20px" }}>
-              <button
-                type="submit"
-                className="sis-btn sis-btn-primary"
-                disabled={!pacienteOriginal || !puedeAdmitir || disabledGeneral || loadingCamas}
-              >
-                {loadingGuardarYAdmitir ? "Guardando y admitiendo..." : "Guardar cambios y admitir"}
-              </button>
+            {successMsg && (
+              <div className="sis-alert sis-alert-success" role="alert">
+                <div>{successMsg}</div>
+                {episodioCreado?.id && (
+                  <div className="mt-2">
+                    <strong>ID episodio:</strong> {episodioCreado.id}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <BuscadorPacienteUniversal
+              dniValue={form.dni}
+              onDniChange={handleDniChange}
+              onPacienteEncontrado={cargarPacienteEncontrado}
+              onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
+              onReset={resetTodo}
+              disabled={disabledGeneral}
+            />
+          </div>
+        </section>
+
+        <section className="sis-card sis-section-card">
+          <div className="sis-section-header">
+            <div>
+              <h3 className="sis-section-title">Datos del paciente</h3>
             </div>
-          </form>
-        </div>
-      </section>
-    </div>
+          </div>
+
+          <div className="sis-card-body">
+            <form onSubmit={guardarCambiosYAdmitir}>
+              <div className="sis-form-grid">
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Nombre</label>
+                  <input
+                    className="sis-form-control"
+                    name="nombre"
+                    value={form.nombre}
+                    onChange={onChange}
+                    disabled={!pacienteOriginal || disabledGeneral}
+                  />
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Apellido</label>
+                  <input
+                    className="sis-form-control"
+                    name="apellido"
+                    value={form.apellido}
+                    onChange={onChange}
+                    disabled={!pacienteOriginal || disabledGeneral}
+                  />
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Fecha de nacimiento</label>
+                  <input
+                    type="date"
+                    className="sis-form-control"
+                    name="fechaNacimiento"
+                    value={form.fechaNacimiento}
+                    onChange={onChange}
+                    min={obtenerFechaMinNacimiento()}
+                    max={obtenerFechaMaxNacimiento()}
+                    disabled={!pacienteOriginal || disabledGeneral}
+                  />
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Edad</label>
+                  <input className="sis-form-control" name="edad" value={form.edad} disabled />
+                  <small className="sis-text-muted">
+                    La edad se calcula automaticamente a partir de la fecha de nacimiento
+                  </small>
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Sexo</label>
+                  <select
+                    className="sis-form-control"
+                    name="sexo"
+                    value={form.sexo}
+                    onChange={onChange}
+                    disabled={!pacienteOriginal || disabledGeneral}
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="MASCULINO">Masculino</option>
+                    <option value="FEMENINO">Femenino</option>
+                  </select>
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Estado de la persona</label>
+                  <select
+                    className="sis-form-control"
+                    name="estadoPersona"
+                    value={form.estadoPersona}
+                    onChange={onChange}
+                    disabled={!pacienteOriginal || disabledGeneral}
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="VIVO">Vivo</option>
+                    <option value="FALLECIDO">Fallecido</option>
+                  </select>
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">Cama asignada</label>
+                  <select
+                    className="sis-form-control"
+                    name="camaId"
+                    value={form.camaId}
+                    onChange={onChange}
+                    disabled={!pacienteOriginal || disabledGeneral || loadingCamas}
+                  >
+                    <option value="">Seleccionar cama</option>
+                    {camasDisponibles.map((cama) => (
+                      <option key={cama.id} value={cama.id}>
+                        {cama.codigo}
+                        {cama.descripcion ? ` - ${cama.descripcion}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <small className="sis-text-muted">
+                    {loadingCamas
+                      ? "Cargando camas disponibles..."
+                      : `${camasDisponibles.length} cama(s) disponible(s)`}
+                  </small>
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">DNI</label>
+                  <input className="sis-form-control" name="dniReadonly" value={form.dni} disabled />
+                </div>
+
+                <div className="sis-form-group">
+                  <label className="sis-form-label">N° Historia clínica</label>
+                  <input
+                    className="sis-form-control"
+                    name="nroHistoriaClinica"
+                    value={form.nroHistoriaClinica}
+                    disabled
+                  />
+                </div>
+              </div>
+
+              {pacienteActivo && (
+                <div className="sis-detail-grid" style={{ marginTop: "18px" }}>
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">ID paciente</span>
+                    <div className="sis-detail-value">{pacienteActivo.id || "-"}</div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Fecha alta</span>
+                    <div className="sis-detail-value">{pacienteActivo.fechaAlta || "-"}</div>
+                  </div>
+
+                  <div className="sis-detail-item">
+                    <span className="sis-detail-label">Última modificación</span>
+                    <div className="sis-detail-value">{pacienteActivo.fechaModificacion || "-"}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="sis-page-actions" style={{ marginTop: "20px" }}>
+                <button
+                  type="submit"
+                  className="sis-btn sis-btn-primary"
+                  disabled={!pacienteOriginal || !puedeAdmitir || disabledGeneral || loadingCamas}
+                >
+                  {loadingGuardarYAdmitir ? "Guardando y admitiendo..." : "Guardar cambios y admitir"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <AlertDialog
+        open={dialog.open}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        buttonText={dialog.buttonText}
+        onClose={cerrarDialogo}
+      />
+    </>
   );
 };

@@ -329,7 +329,7 @@ export default function TurnosAdminConsultoriosTable() {
             disabled={procesandoId === turno.turnoId}
             onClick={() => abrirConfirmacionAlta(turno)}
           >
-            {procesandoId === turno.turnoId ? "Procesando..." : "Cita finalizada"}
+            {procesandoId === turno.turnoId ? "Procesando..." : "Finalizar cita"}
           </button>
         </div>
       );

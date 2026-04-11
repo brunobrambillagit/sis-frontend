@@ -65,12 +65,12 @@ export default function TurnosMedicoConsultoriosTable() {
   });
 
   const abrirConfirmacionFinalizar = (turno) => {
-  setModalConfirmacion({
-    abierto: true,
-    turnoId: turno.turnoId,
-    nombrePaciente: `${turno.pacienteNombre || ""} ${turno.pacienteApellido || ""}`.trim(),
-  });
-};
+    setModalConfirmacion({
+      abierto: true,
+      turnoId: turno.turnoId,
+      nombrePaciente: `${turno.pacienteNombre || ""} ${turno.pacienteApellido || ""}`.trim(),
+    });
+  };
 
   const cargarAgendas = async () => {
     if (!usuario?.id) return;
@@ -85,7 +85,7 @@ export default function TurnosMedicoConsultoriosTable() {
   const confirmarFinalizacion = async () => {
     if (!modalConfirmacion.turnoId) return;
 
-    await handleCambioEstado({turnoId: modalConfirmacion.turnoId}, "FINALIZADO");
+    await handleCambioEstado({ turnoId: modalConfirmacion.turnoId }, "FINALIZADO");
     cerrarConfirmacionFinalizar();
   };
 
@@ -94,7 +94,7 @@ export default function TurnosMedicoConsultoriosTable() {
 
     setModalConfirmacion({
       abierto: false,
-      episodioId: null,
+      turnoId: null,
       nombrePaciente: "",
     });
   };
@@ -202,15 +202,24 @@ export default function TurnosMedicoConsultoriosTable() {
     }
 
     if (turno.estadoTurno === "FINALIZADO") {
-      return turno.episodioId ? (
-        <button
-          className="sis-btn sis-btn-outline sis-btn-sm"
-          onClick={() => navigate(`/medico/episodios/${turno.episodioId}`)}
-        >
-          Ver episodio
-        </button>
-      ) : (
-        <span className="sis-text-muted">Sin acciones</span>
+      return (
+        <div className="sis-actions-group">
+          {turno.episodioId && (
+            <button
+              className="sis-btn sis-btn-outline sis-btn-sm"
+              onClick={() => navigate(`/medico/episodios/${turno.episodioId}`)}
+            >
+              Ver episodio
+            </button>
+          )}
+          <button
+            className="sis-btn sis-btn-secondary sis-btn-sm"
+            disabled={procesandoId === turno.turnoId}
+            onClick={() => handleCambioEstado(turno, "EN_ATENCION")}
+          >
+            {procesandoId === turno.turnoId ? "Procesando..." : "Evolucionar"}
+          </button>
+        </div>
       );
     }
 
@@ -310,7 +319,7 @@ export default function TurnosMedicoConsultoriosTable() {
                       <td className="sis-cell-strong">{turno.turnoId}</td>
                       <td>{turno.fecha || "-"}</td>
                       <td>{formatearHora(turno.horaDesde)} - {formatearHora(turno.horaHasta)}</td>
-                      <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}`: ""}</td>
+                      <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}` : ""}</td>
                       <td>{turno.pacienteDni || "-"}</td>
                       <td>{turno.agendaNombre || "-"}</td>
                       <td>
@@ -327,16 +336,17 @@ export default function TurnosMedicoConsultoriosTable() {
           )}
         </div>
       </div>
-                        <ConfirmDialog
-                          open={modalConfirmacion.abierto}
-                          title="Confirmar finalizacion"
-                          message={`¿Realmente querés finalizar la evolucion${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
-                          onConfirm={confirmarFinalizacion}
-                          onCancel={cerrarConfirmacionFinalizar}
-                          confirmText="Sí, finalizar"
-                          cancelText="No"
-                          loading={procesandoId === modalConfirmacion.turnoId}
-                        />
+
+      <ConfirmDialog
+        open={modalConfirmacion.abierto}
+        title="Confirmar finalizacion"
+        message={`¿Realmente querés finalizar la evolucion${modalConfirmacion.nombrePaciente ? ` de ${modalConfirmacion.nombrePaciente}` : ""}?`}
+        onConfirm={confirmarFinalizacion}
+        onCancel={cerrarConfirmacionFinalizar}
+        confirmText="Sí, finalizar"
+        cancelText="No"
+        loading={procesandoId === modalConfirmacion.turnoId}
+      />
     </div>
   );
 }
