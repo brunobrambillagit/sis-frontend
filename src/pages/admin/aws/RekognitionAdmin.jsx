@@ -6,6 +6,8 @@ import {
   eliminarRostroAdmin,
 } from "../../../api/reconocimientoApi";
 
+const ITEMS_POR_PAGINA = 10;
+
 export default function RekognitionAdmin() {
   const navigate = useNavigate();
 
@@ -15,6 +17,7 @@ export default function RekognitionAdmin() {
   const [busqueda, setBusqueda] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
 
   useEffect(() => {
     cargarRegistros();
@@ -26,6 +29,7 @@ export default function RekognitionAdmin() {
       setError("");
       const data = await obtenerRostrosAdmin();
       setRegistros(Array.isArray(data) ? data : []);
+      setPaginaActual(1);
     } catch (err) {
       console.error(err);
       setError(
@@ -58,6 +62,25 @@ export default function RekognitionAdmin() {
       );
     });
   }, [registros, busqueda]);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(registrosFiltrados.length / ITEMS_POR_PAGINA)
+  );
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
+  const indiceInicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+  const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
+  const registrosPaginados = registrosFiltrados.slice(indiceInicio, indiceFin);
 
   const handleEliminar = async (registro) => {
     const confirmado = window.confirm(
@@ -141,57 +164,121 @@ export default function RekognitionAdmin() {
             )}
 
             {!loading && registrosFiltrados.length > 0 && (
-              <div className="sis-table-wrapper">
-                <table className="sis-table">
-                  <thead>
-                    <tr>
-                      <th>Preview</th>
-                      <th>Paciente</th>
-                      <th>DNI</th>
-                      <th>faceId</th>
-                      <th>externalImageId</th>
-                      <th>Bucket</th>
-                      <th>Key</th>
-                      <th>Collection</th>
-                      <th>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {registrosFiltrados.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          {item.previewUrl ? (
-                            <img
-                              src={item.previewUrl}
-                              alt={item.pacienteNombreCompleto || "rostro"}
-                              style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }}
-                            />
-                          ) : (
-                            <span className="sis-muted-text">Sin preview</span>
-                          )}
-                        </td>
-                        <td>{item.pacienteNombreCompleto}</td>
-                        <td>{item.pacienteDni}</td>
-                        <td style={{ maxWidth: 180, wordBreak: "break-word" }}>{item.faceId}</td>
-                        <td style={{ maxWidth: 180, wordBreak: "break-word" }}>{item.externalImageId}</td>
-                        <td style={{ maxWidth: 180, wordBreak: "break-word" }}>{item.s3Bucket}</td>
-                        <td style={{ maxWidth: 220, wordBreak: "break-word" }}>{item.s3Key}</td>
-                        <td>{item.collectionId}</td>
-                        <td>
-                          <button
-                            className="sis-btn sis-btn-outline"
-                            type="button"
-                            onClick={() => handleEliminar(item)}
-                            disabled={eliminandoId === item.id}
-                          >
-                            {eliminandoId === item.id ? "Eliminando..." : "Eliminar"}
-                          </button>
-                        </td>
+              <>
+                <div className="sis-table-wrapper">
+                  <table className="sis-table">
+                    <thead>
+                      <tr>
+                        <th>Preview</th>
+                        <th>Paciente</th>
+                        <th>DNI</th>
+                        <th>faceId</th>
+                        <th>externalImageId</th>
+                        <th>Bucket</th>
+                        <th>Key</th>
+                        <th>Collection</th>
+                        <th>Acción</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {registrosPaginados.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            {item.previewUrl ? (
+                              <img
+                                src={item.previewUrl}
+                                alt={item.pacienteNombreCompleto || "rostro"}
+                                style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8 }}
+                              />
+                            ) : (
+                              <span className="sis-muted-text">Sin preview</span>
+                            )}
+                          </td>
+                          <td>{item.pacienteNombreCompleto}</td>
+                          <td>{item.pacienteDni}</td>
+                          <td style={{ maxWidth: 180, wordBreak: "break-word" }}>{item.faceId}</td>
+                          <td style={{ maxWidth: 180, wordBreak: "break-word" }}>{item.externalImageId}</td>
+                          <td style={{ maxWidth: 180, wordBreak: "break-word" }}>{item.s3Bucket}</td>
+                          <td style={{ maxWidth: 220, wordBreak: "break-word" }}>{item.s3Key}</td>
+                          <td>{item.collectionId}</td>
+                          <td>
+                            <button
+                              className="sis-btn sis-btn-outline"
+                              type="button"
+                              onClick={() => handleEliminar(item)}
+                              disabled={eliminandoId === item.id}
+                            >
+                              {eliminandoId === item.id ? "Eliminando..." : "Eliminar"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div className="sis-text-muted">
+                    Página {paginaActual} de {totalPaginas}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() => setPaginaActual(1)}
+                      disabled={paginaActual === 1}
+                    >
+                      Primera
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                      disabled={paginaActual === 1}
+                    >
+                      Anterior
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() =>
+                        setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
+                      }
+                      disabled={paginaActual === totalPaginas}
+                    >
+                      Siguiente
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() => setPaginaActual(totalPaginas)}
+                      disabled={paginaActual === totalPaginas}
+                    >
+                      Última
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

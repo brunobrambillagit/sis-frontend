@@ -4,6 +4,8 @@ import { cambiarEstadoEpisodio, obtenerEpisodiosActivos } from "../api/episodios
 import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 
+const ITEMS_POR_PAGINA = 10;
+
 function formatearFecha(fecha) {
   if (!fecha) return "-";
 
@@ -61,6 +63,7 @@ export default function EpisodiosMedicoTable({
   const [procesandoId, setProcesandoId] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
   const [modalConfirmacion, setModalConfirmacion] = useState({
     abierto: false,
     episodioId: null,
@@ -200,9 +203,30 @@ export default function EpisodiosMedicoTable({
     });
   }, [episodios, busqueda, estadoFiltro]);
 
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, estadoFiltro, servicio]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(episodiosFiltrados.length / ITEMS_POR_PAGINA)
+  );
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
+  const indiceInicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+  const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
+
+  const episodiosPaginados = episodiosFiltrados.slice(indiceInicio, indiceFin);
+
   const limpiarFiltros = () => {
     setBusqueda("");
     setEstadoFiltro("");
+    setPaginaActual(1);
   };
 
   return (
@@ -300,65 +324,129 @@ export default function EpisodiosMedicoTable({
           )}
 
           {!loading && !error && episodiosFiltrados.length > 0 && (
-            <div className="sis-table-wrapper">
-              <table className="sis-table">
-                <thead>
-                  <tr>
-                    <th>Episodio</th>
-                    <th>DNI</th>
-                    <th>Apellido</th>
-                    <th>Nombre</th>
-                    <th>Estado</th>
-                    <th>Fecha ingreso</th>
-                    <th>Acciones clínicas</th>
-                    <th>Evolucion medica</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {episodiosFiltrados.map((ep) => {
-                    const evolucionHabilitada = puedeEvolucionar(ep);
+            <>
+              <div className="sis-table-wrapper">
+                <table className="sis-table">
+                  <thead>
+                    <tr>
+                      <th>Episodio</th>
+                      <th>DNI</th>
+                      <th>Apellido</th>
+                      <th>Nombre</th>
+                      <th>Estado</th>
+                      <th>Fecha ingreso</th>
+                      <th>Acciones clínicas</th>
+                      <th>Evolucion medica</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {episodiosPaginados.map((ep) => {
+                      const evolucionHabilitada = puedeEvolucionar(ep);
 
-                    return (
-                      <tr key={ep.episodioId}>
-                        <td className="sis-cell-strong">{ep.episodioId}</td>
-                        <td>{ep.dni || "-"}</td>
-                        <td>{ep.apellido || "-"}</td>
-                        <td>{ep.nombre || "-"}</td>
-                        <td>
-                          <span className={obtenerClaseEstado(ep.estadoAtencion)}>
-                            {formatearEstado(ep.estadoAtencion)}
-                          </span>
-                        </td>
-                        <td className="sis-cell-muted">
-                          {formatearFecha(ep.fechaIngreso)}
-                        </td>
-                        <td className="sis-actions-cell">
-                          <div className="sis-actions-group">
-                            {renderAccionesEstado(ep)}
-                          </div>
-                        </td>
-                        <td className="sis-actions-cell">
-                          <div className="sis-actions-group">
-                            <button
-                              className="sis-btn sis-btn-outline sis-btn-sm"
-                              disabled={!evolucionHabilitada}
-                              title={
-                                evolucionHabilitada
-                                  ? "Abrir evolución médica"
-                                  : "Primero debés presionar Habilitar evolución"
-                              }
-                              onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
-                            >
-                              Evolucionar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={ep.episodioId}>
+                          <td className="sis-cell-strong">{ep.episodioId}</td>
+                          <td>{ep.dni || "-"}</td>
+                          <td>{ep.apellido || "-"}</td>
+                          <td>{ep.nombre || "-"}</td>
+                          <td>
+                            <span className={obtenerClaseEstado(ep.estadoAtencion)}>
+                              {formatearEstado(ep.estadoAtencion)}
+                            </span>
+                          </td>
+                          <td className="sis-cell-muted">
+                            {formatearFecha(ep.fechaIngreso)}
+                          </td>
+                          <td className="sis-actions-cell">
+                            <div className="sis-actions-group">
+                              {renderAccionesEstado(ep)}
+                            </div>
+                          </td>
+                          <td className="sis-actions-cell">
+                            <div className="sis-actions-group">
+                              <button
+                                className="sis-btn sis-btn-outline sis-btn-sm"
+                                disabled={!evolucionHabilitada}
+                                title={
+                                  evolucionHabilitada
+                                    ? "Abrir evolución médica"
+                                    : "Primero debés presionar Habilitar evolución"
+                                }
+                                onClick={() => navigate(`/medico/episodios/${ep.episodioId}`)}
+                              >
+                                Evolucionar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                style={{
+                  marginTop: "1rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div className="sis-text-muted">
+                  Página {paginaActual} de {totalPaginas}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() => setPaginaActual(1)}
+                    disabled={paginaActual === 1}
+                  >
+                    Primera
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                    disabled={paginaActual === 1}
+                  >
+                    Anterior
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() =>
+                      setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
+                    }
+                    disabled={paginaActual === totalPaginas}
+                  >
+                    Siguiente
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() => setPaginaActual(totalPaginas)}
+                    disabled={paginaActual === totalPaginas}
+                  >
+                    Última
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

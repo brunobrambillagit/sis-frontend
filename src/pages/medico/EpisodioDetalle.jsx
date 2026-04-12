@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Header from "../../components/Header";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import AlertDialog from "../../components/AlertDialog";
 import {
+  actualizarObservacionesHistoriaClinica,
   agregarEvolucionEpisodio,
   agregarObservacionEpisodio,
+  agregarObservacionHistoriaClinica,
   obtenerDetalleEpisodio,
 } from "../../api/episodiosDetalleApi";
+
+const ITEMS_POR_PAGINA = 2;
 
 function formatearFecha(fecha) {
   if (!fecha) return "-";
@@ -20,7 +24,7 @@ function formatearFecha(fecha) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false, // 👈 CLAVE
+    hour12: false,
   });
 }
 
@@ -54,6 +58,91 @@ function formatearEstado(estado) {
   }
 }
 
+function obtenerTotalPaginas(items = [], itemsPorPagina = ITEMS_POR_PAGINA) {
+  return Math.max(1, Math.ceil((items?.length || 0) / itemsPorPagina));
+}
+
+function obtenerItemsPaginados(paginaActual, items = [], itemsPorPagina = ITEMS_POR_PAGINA) {
+  const inicio = (paginaActual - 1) * itemsPorPagina;
+  const fin = inicio + itemsPorPagina;
+  return items.slice(inicio, fin);
+}
+
+function PaginacionHistorial({
+  paginaActual,
+  totalItems,
+  itemsPorPagina = ITEMS_POR_PAGINA,
+  onCambiarPagina,
+}) {
+  const totalPaginas = obtenerTotalPaginas(
+    Array.from({ length: totalItems }),
+    itemsPorPagina
+  );
+
+  if (totalItems <= itemsPorPagina) {
+    return null;
+  }
+
+  const paginaInicial = Math.max(1, paginaActual - 2);
+  const paginaFinal = Math.min(totalPaginas, paginaInicial + 4);
+
+  const paginas = [];
+  for (let pagina = paginaInicial; pagina <= paginaFinal; pagina += 1) {
+    paginas.push(pagina);
+  }
+
+  return (
+    <div
+      className="sis-pagination"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "0.5rem",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: "1rem",
+      }}
+    >
+      <div className="sis-text-muted" style={{ fontSize: "0.95rem" }}>
+        Página {paginaActual} de {totalPaginas} · {totalItems} registro{totalItems === 1 ? "" : "s"}
+      </div>
+
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="sis-btn sis-btn-outline"
+          onClick={() => onCambiarPagina(paginaActual - 1)}
+          disabled={paginaActual === 1}
+        >
+          Anterior
+        </button>
+
+        {paginas.map((pagina) => (
+          <button
+            key={pagina}
+            type="button"
+            className={`sis-btn ${
+              pagina === paginaActual ? "sis-btn-primary" : "sis-btn-outline"
+            }`}
+            onClick={() => onCambiarPagina(pagina)}
+          >
+            {pagina}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          className="sis-btn sis-btn-outline"
+          onClick={() => onCambiarPagina(paginaActual + 1)}
+          disabled={paginaActual === totalPaginas}
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const initialAlertDialog = {
   open: false,
   title: "Aviso",
@@ -66,6 +155,12 @@ export default function EpisodioDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
+  const location = useLocation();
+
+  const soloLectura = location.state?.soloLectura === true;
+  const volverAListaPaciente = location.state?.volverAListaPaciente === true;
+  const pacienteBuscado = location.state?.pacienteBuscado || null;
+  const episodiosPaciente = location.state?.episodiosPaciente || [];
 
   const [detalle, setDetalle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,11 +169,17 @@ export default function EpisodioDetalle() {
   const [observacion, setObservacion] = useState("");
   const [guardandoObservacion, setGuardandoObservacion] = useState(false);
 
-  const location = useLocation();
-  const soloLectura = location.state?.soloLectura === true;
-  const volverAListaPaciente = location.state?.volverAListaPaciente === true;
-  const pacienteBuscado = location.state?.pacienteBuscado || null;
-  const episodiosPaciente = location.state?.episodiosPaciente || [];
+  const [observacionesHistoriaClinica, setObservacionesHistoriaClinica] =
+    useState("");
+  const [guardandoObservacionesHC, setGuardandoObservacionesHC] =
+    useState(false);
+
+  const [observacionHistoriaClinica, setObservacionHistoriaClinica] =
+    useState("");
+  const [
+    guardandoObservacionHistoriaClinica,
+    setGuardandoObservacionHistoriaClinica,
+  ] = useState(false);
 
   const [formEvolucion, setFormEvolucion] = useState({
     diagnosticos: "",
@@ -89,7 +190,22 @@ export default function EpisodioDetalle() {
   const [guardandoEvolucion, setGuardandoEvolucion] = useState(false);
 
   const [evolucionesAbiertas, setEvolucionesAbiertas] = useState({});
-  const [modalConfirmacionObservacion, setModalConfirmacionObservacion] = useState({
+  const [paginaObservacionesHC, setPaginaObservacionesHC] = useState(1);
+  const [paginaObservacionesEpisodio, setPaginaObservacionesEpisodio] = useState(1);
+  const [paginaEvoluciones, setPaginaEvoluciones] = useState(1);
+
+  const [modalConfirmacionObservacion, setModalConfirmacionObservacion] =
+    useState({
+      abierto: false,
+    });
+  const [modalConfirmacionObservacionesHC, setModalConfirmacionObservacionesHC] =
+    useState({
+      abierto: false,
+    });
+  const [
+    modalConfirmacionObservacionHistoriaClinica,
+    setModalConfirmacionObservacionHistoriaClinica,
+  ] = useState({
     abierto: false,
   });
   const [modalConfirmacionEvolucion, setModalConfirmacionEvolucion] = useState({
@@ -122,6 +238,7 @@ export default function EpisodioDetalle() {
       setError("");
       const data = await obtenerDetalleEpisodio(id);
       setDetalle(data);
+      setObservacionesHistoriaClinica(data?.observacionesHistoriaClinica || "");
     } catch (err) {
       console.error(err);
       setError("No se pudo cargar el detalle del episodio.");
@@ -133,6 +250,180 @@ export default function EpisodioDetalle() {
   useEffect(() => {
     cargarDetalle();
   }, [id]);
+
+  useEffect(() => {
+    const totalPaginasHC = obtenerTotalPaginas(
+      detalle?.historialObservacionesHistoriaClinica || []
+    );
+    if (paginaObservacionesHC > totalPaginasHC) {
+      setPaginaObservacionesHC(totalPaginasHC);
+    }
+
+    const totalPaginasObsEpisodio = obtenerTotalPaginas(detalle?.observaciones || []);
+    if (paginaObservacionesEpisodio > totalPaginasObsEpisodio) {
+      setPaginaObservacionesEpisodio(totalPaginasObsEpisodio);
+    }
+
+    const totalPaginasEvol = obtenerTotalPaginas(detalle?.evoluciones || []);
+    if (paginaEvoluciones > totalPaginasEvol) {
+      setPaginaEvoluciones(totalPaginasEvol);
+    }
+  }, [detalle, paginaObservacionesHC, paginaObservacionesEpisodio, paginaEvoluciones]);
+
+  const observacionesHistoriaClinicaPaginadas = useMemo(
+    () =>
+      obtenerItemsPaginados(
+        paginaObservacionesHC,
+        detalle?.historialObservacionesHistoriaClinica || []
+      ),
+    [paginaObservacionesHC, detalle?.historialObservacionesHistoriaClinica]
+  );
+
+  const observacionesEpisodioPaginadas = useMemo(
+    () => obtenerItemsPaginados(paginaObservacionesEpisodio, detalle?.observaciones || []),
+    [paginaObservacionesEpisodio, detalle?.observaciones]
+  );
+
+  const evolucionesPaginadas = useMemo(
+    () => obtenerItemsPaginados(paginaEvoluciones, detalle?.evoluciones || []),
+    [paginaEvoluciones, detalle?.evoluciones]
+  );
+
+  const abrirConfirmacionGuardarObservacionesHC = (e) => {
+    e.preventDefault();
+
+    if (soloLectura) return;
+
+    const valorActual = detalle?.observacionesHistoriaClinica || "";
+    const valorNuevo = observacionesHistoriaClinica || "";
+
+    if (valorActual.trim() === valorNuevo.trim()) {
+      mostrarDialogo({
+        title: "Atención",
+        message:
+          "No hay cambios para guardar en las observaciones de la historia clínica.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setModalConfirmacionObservacionesHC({ abierto: true });
+  };
+
+  const cerrarConfirmacionGuardarObservacionesHC = () => {
+    if (guardandoObservacionesHC) return;
+    setModalConfirmacionObservacionesHC({ abierto: false });
+  };
+
+  const confirmarGuardarObservacionesHC = async () => {
+    try {
+      setGuardandoObservacionesHC(true);
+
+      await actualizarObservacionesHistoriaClinica(id, {
+        observaciones: observacionesHistoriaClinica,
+      });
+
+      cerrarConfirmacionGuardarObservacionesHC();
+      await cargarDetalle();
+
+      mostrarDialogo({
+        title: "Observaciones actualizadas",
+        message:
+          "Las observaciones de la historia clínica se guardaron correctamente.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error(err);
+      const mensaje =
+        err?.response?.data?.message ||
+        err?.response?.data ||
+        "No se pudieron guardar las observaciones de la historia clínica.";
+
+      mostrarDialogo({
+        title: "Error al guardar observaciones",
+        message: mensaje,
+        type: "error",
+      });
+    } finally {
+      setGuardandoObservacionesHC(false);
+    }
+  };
+
+  const abrirConfirmacionGuardarObservacionHistoriaClinica = (e) => {
+    e.preventDefault();
+
+    if (!usuario?.id) {
+      mostrarDialogo({
+        title: "Error",
+        message: "No se encontró el usuario logueado.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!observacionHistoriaClinica.trim()) {
+      mostrarDialogo({
+        title: "Atención",
+        message:
+          "Ingresá una observación para el historial de la historia clínica.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setModalConfirmacionObservacionHistoriaClinica({ abierto: true });
+  };
+
+  const cerrarConfirmacionGuardarObservacionHistoriaClinica = () => {
+    if (guardandoObservacionHistoriaClinica) return;
+    setModalConfirmacionObservacionHistoriaClinica({ abierto: false });
+  };
+
+  const confirmarGuardarObservacionHistoriaClinica = async () => {
+    if (!usuario?.id) {
+      mostrarDialogo({
+        title: "Error",
+        message: "No se encontró el usuario logueado.",
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      setGuardandoObservacionHistoriaClinica(true);
+
+      await agregarObservacionHistoriaClinica(id, {
+        usuarioId: usuario.id,
+        observacion: observacionHistoriaClinica.trim(),
+      });
+
+      setObservacionHistoriaClinica("");
+      cerrarConfirmacionGuardarObservacionHistoriaClinica();
+      await cargarDetalle();
+      setPaginaObservacionesHC(1);
+
+      mostrarDialogo({
+        title: "Observación guardada",
+        message:
+          "La observación del historial de historia clínica se guardó correctamente.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error(err);
+      const mensaje =
+        err?.response?.data?.message ||
+        err?.response?.data ||
+        "No se pudo guardar la observación de historia clínica.";
+
+      mostrarDialogo({
+        title: "Error al guardar observación",
+        message: mensaje,
+        type: "error",
+      });
+    } finally {
+      setGuardandoObservacionHistoriaClinica(false);
+    }
+  };
 
   const abrirConfirmacionGuardarObservacion = (e) => {
     e.preventDefault();
@@ -184,6 +475,7 @@ export default function EpisodioDetalle() {
       setObservacion("");
       cerrarConfirmacionGuardarObservacion();
       await cargarDetalle();
+      setPaginaObservacionesEpisodio(1);
 
       mostrarDialogo({
         title: "Observación guardada",
@@ -279,6 +571,7 @@ export default function EpisodioDetalle() {
 
       cerrarConfirmacionGuardarEvolucion();
       await cargarDetalle();
+      setPaginaEvoluciones(1);
 
       mostrarDialogo({
         title: "Evolución guardada",
@@ -415,7 +708,7 @@ export default function EpisodioDetalle() {
               </div>
             </section>
 
-            <section className="sis-card sis-section-card">
+            {/* <section className="sis-card sis-section-card">
               <div className="sis-section-header">
                 <h3 className="sis-section-title">
                   Observaciones de la historia clínica
@@ -423,17 +716,126 @@ export default function EpisodioDetalle() {
               </div>
 
               <div className="sis-card-body">
-                {detalle.observacionesHistoriaClinica ? (
-                  <p className="sis-rich-text mb-0">
-                    {detalle.observacionesHistoriaClinica}
-                  </p>
-                ) : (
-                  <p className="sis-text-muted mb-0">
-                    No hay observaciones en la historia clínica.
-                  </p>
-                )}
+                <form
+                  onSubmit={abrirConfirmacionGuardarObservacionesHC}
+                  className="sis-form"
+                >
+                  <div className="sis-form-group">
+                    <label className="sis-form-label">
+                      Observaciones generales de la historia clínica
+                    </label>
+                    <textarea
+                      className="sis-form-control sis-textarea"
+                      rows="5"
+                      value={observacionesHistoriaClinica}
+                      onChange={(e) =>
+                        setObservacionesHistoriaClinica(e.target.value)
+                      }
+                      placeholder="Ingresá observaciones generales relevantes para la historia clínica..."
+                      disabled={soloLectura}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="sis-btn sis-btn-primary"
+                    disabled={guardandoObservacionesHC || soloLectura}
+                  >
+                    {guardandoObservacionesHC
+                      ? "Guardando..."
+                      : "Guardar observaciones HC"}
+                  </button>
+                </form>
               </div>
-            </section>
+            </section> */}
+
+            <div className="sis-detail-columns">
+              <section className="sis-card sis-section-card">
+                <div className="sis-section-header">
+                  <h3 className="sis-section-title">
+                    Nueva observación de la Historia Clinica
+                  </h3>
+                </div>
+
+                <div className="sis-card-body">
+                  <form
+                    onSubmit={abrirConfirmacionGuardarObservacionHistoriaClinica}
+                    className="sis-form"
+                  >
+                    <div className="sis-form-group">
+                      <label className="sis-form-label">Observación</label>
+                      <textarea
+                        className="sis-form-control sis-textarea"
+                        rows="4"
+                        value={observacionHistoriaClinica}
+                        onChange={(e) =>
+                          setObservacionHistoriaClinica(e.target.value)
+                        }
+                        placeholder="Ingresá una observación para el historial clínico..."
+                        disabled={soloLectura}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="sis-btn sis-btn-primary"
+                      disabled={
+                        guardandoObservacionHistoriaClinica || soloLectura
+                      }
+                    >
+                      {guardandoObservacionHistoriaClinica
+                        ? "Guardando..."
+                        : "Guardar observación HC"}
+                    </button>
+                  </form>
+                </div>
+              </section>
+
+              <section className="sis-card sis-section-card">
+                <div className="sis-section-header">
+                  <h3 className="sis-section-title">
+                    Historial de observaciones de la Historia Clínica
+                  </h3>
+                </div>
+
+                <div className="sis-card-body">
+                  {!detalle.historialObservacionesHistoriaClinica ||
+                  detalle.historialObservacionesHistoriaClinica.length === 0 ? (
+                    <p className="sis-text-muted mb-0">
+                      No hay observaciones históricas registradas en la historia clínica.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="sis-timeline">
+                        {observacionesHistoriaClinicaPaginadas.map((obs) => (
+                          <article key={obs.id} className="sis-timeline-item">
+                            <div className="sis-timeline-head">
+                              <strong className="sis-timeline-user">
+                                {obs.nombreUsuario || "Usuario"}
+                              </strong>
+                              <span className="sis-timeline-date">
+                                {formatearFecha(obs.fechaRegistro)}
+                              </span>
+                            </div>
+                            <div className="sis-timeline-body">
+                              {obs.observacion || "-"}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+
+                      <PaginacionHistorial
+                        paginaActual={paginaObservacionesHC}
+                        totalItems={
+                          detalle.historialObservacionesHistoriaClinica.length
+                        }
+                        onCambiarPagina={setPaginaObservacionesHC}
+                      />
+                    </>
+                  )}
+                </div>
+              </section>
+            </div>
 
             <div className="sis-detail-columns">
               <section className="sis-card sis-section-card">
@@ -442,7 +844,10 @@ export default function EpisodioDetalle() {
                 </div>
 
                 <div className="sis-card-body">
-                  <form onSubmit={abrirConfirmacionGuardarObservacion} className="sis-form">
+                  <form
+                    onSubmit={abrirConfirmacionGuardarObservacion}
+                    className="sis-form"
+                  >
                     <div className="sis-form-group">
                       <label className="sis-form-label">Observación</label>
                       <textarea
@@ -479,23 +884,31 @@ export default function EpisodioDetalle() {
                       No hay observaciones registradas.
                     </p>
                   ) : (
-                    <div className="sis-timeline">
-                      {detalle.observaciones.map((obs) => (
-                        <article key={obs.id} className="sis-timeline-item">
-                          <div className="sis-timeline-head">
-                            <strong className="sis-timeline-user">
-                              {obs.nombreUsuario || "Usuario"}
-                            </strong>
-                            <span className="sis-timeline-date">
-                              {formatearFecha(obs.fechaRegistro)}
-                            </span>
-                          </div>
-                          <div className="sis-timeline-body">
-                            {obs.observacion || "-"}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
+                    <>
+                      <div className="sis-timeline">
+                        {observacionesEpisodioPaginadas.map((obs) => (
+                          <article key={obs.id} className="sis-timeline-item">
+                            <div className="sis-timeline-head">
+                              <strong className="sis-timeline-user">
+                                {obs.nombreUsuario || "Usuario"}
+                              </strong>
+                              <span className="sis-timeline-date">
+                                {formatearFecha(obs.fechaRegistro)}
+                              </span>
+                            </div>
+                            <div className="sis-timeline-body">
+                              {obs.observacion || "-"}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+
+                      <PaginacionHistorial
+                        paginaActual={paginaObservacionesEpisodio}
+                        totalItems={detalle.observaciones.length}
+                        onCambiarPagina={setPaginaObservacionesEpisodio}
+                      />
+                    </>
                   )}
                 </div>
               </section>
@@ -584,76 +997,106 @@ export default function EpisodioDetalle() {
                 {!detalle.evoluciones || detalle.evoluciones.length === 0 ? (
                   <p className="sis-text-muted mb-0">No hay evoluciones registradas.</p>
                 ) : (
-                  <div className="sis-timeline">
-                    {detalle.evoluciones.map((ev) => {
-                      const abierta = !!evolucionesAbiertas[ev.id];
+                  <>
+                    <div className="sis-timeline">
+                      {evolucionesPaginadas.map((ev) => {
+                        const abierta = !!evolucionesAbiertas[ev.id];
 
-                      return (
-                        <article key={ev.id} className="sis-timeline-item">
-                          <button
-                            type="button"
-                            className="sis-btn sis-btn-outline"
-                            onClick={() => toggleEvolucion(ev.id)}
-                            style={{
-                              width: "100%",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              textAlign: "left",
-                              marginBottom: abierta ? "1rem" : 0,
-                            }}
-                          >
-                            <span>
-                              {formatearFecha(ev.fechaRegistro)} - {ev.nombreUsuario || "Usuario"}
-                            </span>
-                            <span>{abierta ? "Ocultar" : "Ver detalle"}</span>
-                          </button>
+                        return (
+                          <article key={ev.id} className="sis-timeline-item">
+                            <button
+                              type="button"
+                              className="sis-btn sis-btn-outline"
+                              onClick={() => toggleEvolucion(ev.id)}
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                textAlign: "left",
+                                marginBottom: abierta ? "1rem" : 0,
+                              }}
+                            >
+                              <span>
+                                {formatearFecha(ev.fechaRegistro)} - {ev.nombreUsuario || "Usuario"}
+                              </span>
+                              <span>{abierta ? "Ocultar" : "Ver detalle"}</span>
+                            </button>
 
-                          {abierta && (
-                            <div className="sis-evolution-grid">
-                              <div className="sis-evolution-block">
-                                <span className="sis-detail-label">Diagnóstico/s</span>
-                                <div className="sis-detail-value">
-                                  {ev.diagnosticos || "-"}
+                            {abierta && (
+                              <div className="sis-evolution-grid">
+                                <div className="sis-evolution-block">
+                                  <span className="sis-detail-label">Diagnóstico/s</span>
+                                  <div className="sis-detail-value">
+                                    {ev.diagnosticos || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="sis-evolution-block">
+                                  <span className="sis-detail-label">Evolución</span>
+                                  <div className="sis-detail-value">
+                                    {ev.evolucion || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="sis-evolution-block">
+                                  <span className="sis-detail-label">
+                                    Medicación / indicaciones
+                                  </span>
+                                  <div className="sis-detail-value">
+                                    {ev.medicacionIndicaciones || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="sis-evolution-block">
+                                  <span className="sis-detail-label">
+                                    Estudios / solicitud de estudios
+                                  </span>
+                                  <div className="sis-detail-value">
+                                    {ev.estudiosSolicitados || "-"}
+                                  </div>
                                 </div>
                               </div>
+                            )}
+                          </article>
+                        );
+                      })}
+                    </div>
 
-                              <div className="sis-evolution-block">
-                                <span className="sis-detail-label">Evolución</span>
-                                <div className="sis-detail-value">
-                                  {ev.evolucion || "-"}
-                                </div>
-                              </div>
-
-                              <div className="sis-evolution-block">
-                                <span className="sis-detail-label">
-                                  Medicación / indicaciones
-                                </span>
-                                <div className="sis-detail-value">
-                                  {ev.medicacionIndicaciones || "-"}
-                                </div>
-                              </div>
-
-                              <div className="sis-evolution-block">
-                                <span className="sis-detail-label">
-                                  Estudios / solicitud de estudios
-                                </span>
-                                <div className="sis-detail-value">
-                                  {ev.estudiosSolicitados || "-"}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </article>
-                      );
-                    })}
-                  </div>
+                    <PaginacionHistorial
+                      paginaActual={paginaEvoluciones}
+                      totalItems={detalle.evoluciones.length}
+                      onCambiarPagina={setPaginaEvoluciones}
+                    />
+                  </>
                 )}
               </div>
             </section>
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={modalConfirmacionObservacionesHC.abierto}
+        title="Confirmar guardado de observaciones HC"
+        message="¿Estás seguro de querer guardar las observaciones en la historia clínica?"
+        onConfirm={confirmarGuardarObservacionesHC}
+        onCancel={cerrarConfirmacionGuardarObservacionesHC}
+        confirmText="Sí, guardar"
+        cancelText="No"
+        loading={guardandoObservacionesHC}
+      />
+
+      <ConfirmDialog
+        open={modalConfirmacionObservacionHistoriaClinica.abierto}
+        title="Confirmar guardado de observación de historia clínica"
+        message="¿Estás seguro de querer guardar esta observación en el historial de la historia clínica?"
+        onConfirm={confirmarGuardarObservacionHistoriaClinica}
+        onCancel={cerrarConfirmacionGuardarObservacionHistoriaClinica}
+        confirmText="Sí, guardar"
+        cancelText="No"
+        loading={guardandoObservacionHistoriaClinica}
+      />
 
       <ConfirmDialog
         open={modalConfirmacionObservacion.abierto}

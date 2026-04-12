@@ -9,6 +9,8 @@ import {
   reiniciarPasswordUsuarioAdmin,
 } from "../../../api/adminUsuariosApi";
 
+const ITEMS_POR_PAGINA = 10;
+
 const EMPTY_FORM = {
   nombre: "",
   apellido: "",
@@ -39,6 +41,7 @@ export default function UsuariosAdmin() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
 
   const [formCrear, setFormCrear] = useState(EMPTY_FORM);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
@@ -56,6 +59,7 @@ export default function UsuariosAdmin() {
       setError("");
       const data = await listarUsuariosAdmin();
       setUsuarios(Array.isArray(data) ? data : []);
+      setPaginaActual(1);
     } catch (err) {
       console.error(err);
       setError(
@@ -84,6 +88,25 @@ export default function UsuariosAdmin() {
       );
     });
   }, [usuarios, busqueda]);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(usuariosFiltrados.length / ITEMS_POR_PAGINA)
+  );
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
+  const indiceInicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+  const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
+  const usuariosPaginados = usuariosFiltrados.slice(indiceInicio, indiceFin);
 
   const seleccionarUsuario = (usuario) => {
     setUsuarioSeleccionado(usuario);
@@ -337,42 +360,106 @@ export default function UsuariosAdmin() {
             )}
 
             {!loading && usuariosFiltrados.length > 0 && (
-              <div className="sis-table-wrapper">
-                <table className="sis-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Email</th>
-                      <th>CUIT</th>
-                      <th>Rol</th>
-                      <th>Cambio obligatorio</th>
-                      <th>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usuariosFiltrados.map((u) => (
-                      <tr key={u.id}>
-                        <td className="sis-cell-strong">{u.id}</td>
-                        <td>{u.nombre} {u.apellido}</td>
-                        <td>{u.email}</td>
-                        <td>{u.cuit}</td>
-                        <td>{u.rol}</td>
-                        <td>{u.debeCambiarPassword ? "Sí" : "No"}</td>
-                        <td>
-                          <button
-                            className="sis-btn sis-btn-outline"
-                            type="button"
-                            onClick={() => seleccionarUsuario(u)}
-                          >
-                            Editar
-                          </button>
-                        </td>
+              <>
+                <div className="sis-table-wrapper">
+                  <table className="sis-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>CUIT</th>
+                        <th>Rol</th>
+                        <th>Cambio obligatorio</th>
+                        <th>Acción</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {usuariosPaginados.map((u) => (
+                        <tr key={u.id}>
+                          <td className="sis-cell-strong">{u.id}</td>
+                          <td>{u.nombre} {u.apellido}</td>
+                          <td>{u.email}</td>
+                          <td>{u.cuit}</td>
+                          <td>{u.rol}</td>
+                          <td>{u.debeCambiarPassword ? "Sí" : "No"}</td>
+                          <td>
+                            <button
+                              className="sis-btn sis-btn-outline"
+                              type="button"
+                              onClick={() => seleccionarUsuario(u)}
+                            >
+                              Editar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div className="sis-text-muted">
+                    Página {paginaActual} de {totalPaginas}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.5rem",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() => setPaginaActual(1)}
+                      disabled={paginaActual === 1}
+                    >
+                      Primera
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                      disabled={paginaActual === 1}
+                    >
+                      Anterior
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() =>
+                        setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
+                      }
+                      disabled={paginaActual === totalPaginas}
+                    >
+                      Siguiente
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sis-btn sis-btn-outline"
+                      onClick={() => setPaginaActual(totalPaginas)}
+                      disabled={paginaActual === totalPaginas}
+                    >
+                      Última
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

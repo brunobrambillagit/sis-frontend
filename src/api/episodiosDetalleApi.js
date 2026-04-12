@@ -19,3 +19,19 @@ export async function obtenerEpisodiosPorPacienteDni(dni) {
   const { data } = await axiosClient.get(`/api/episodios/paciente/${dni}`);
   return data;
 }
+
+export async function agregarObservacionHistoriaClinica(id, payload) {
+  const { data } = await axiosClient.post(
+    `/api/episodios/${id}/historia-clinica/historial-observaciones`,
+    payload
+  );
+  return data;
+}
+
+export async function actualizarObservacionesHistoriaClinica(id, payload) {
+  const { data } = await axiosClient.put(
+    `/api/episodios/${id}/historia-clinica/observaciones`,
+    payload
+  );
+  return data;
+}

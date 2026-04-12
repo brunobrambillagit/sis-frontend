@@ -10,6 +10,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 
+const ITEMS_POR_PAGINA = 10;
+
 function hoyISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -131,6 +133,7 @@ export default function TurnosAdminConsultoriosTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [procesandoId, setProcesandoId] = useState(null);
+  const [paginaActual, setPaginaActual] = useState(1);
   const [filtros, setFiltros] = useState({
     fecha: hoyISO(),
     agendaId: "",
@@ -211,6 +214,22 @@ export default function TurnosAdminConsultoriosTable() {
       finalizados: turnos.filter((t) => t.estadoTurno === "ALTA").length,
     };
   }, [turnos]);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [filtros.fecha, filtros.agendaId, filtros.estado]);
+
+  const totalPaginas = Math.max(1, Math.ceil(turnos.length / ITEMS_POR_PAGINA));
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
+  const indiceInicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+  const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
+  const turnosPaginados = turnos.slice(indiceInicio, indiceFin);
 
   const handleCambiarEstado = async (turnoId, nuevoEstado) => {
     if (!usuario?.id) {
@@ -355,11 +374,11 @@ export default function TurnosAdminConsultoriosTable() {
           </button>
 
           <button
-          className="sis-btn sis-btn-outline"
-          onClick={() => navigate("/administrativo/guardia/crear-paciente")}
-        >
-          Crear paciente
-        </button>
+            className="sis-btn sis-btn-outline"
+            onClick={() => navigate("/administrativo/guardia/crear-paciente")}
+          >
+            Crear paciente
+          </button>
 
           <button
             className="sis-btn sis-btn-primary"
@@ -446,42 +465,106 @@ export default function TurnosAdminConsultoriosTable() {
           )}
 
           {!loading && !error && turnos.length > 0 && (
-            <div className="sis-table-wrapper">
-              <table className="sis-table">
-                <thead>
-                  <tr>
-                    <th>Turno</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Paciente</th>
-                    <th>DNI</th>
-                    <th>Agenda</th>
-                    <th>Médico</th>
-                    <th>Estado</th>
-                    <th>Acciones administrativas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {turnos.map((turno) => (
-                    <tr key={turno.turnoId}>
-                      <td className="sis-cell-strong">{turno.turnoId}</td>
-                      <td>{turno.fecha || "-"}</td>
-                      <td>{formatearHora(turno.horaDesde)} - {formatearHora(turno.horaHasta)}</td>
-                      <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}` : ""}</td>
-                      <td>{turno.pacienteDni || ""}</td>
-                      <td>{turno.agendaNombre || "-"}</td>
-                      <td>{turno.medicosAgenda || "-"}</td>
-                      <td>
-                        <span className={obtenerClaseEstado(turno.estadoTurno)}>
-                          {formatearEstado(turno.estadoTurno)}
-                        </span>
-                      </td>
-                      <td className="sis-actions-cell">{renderAcciones(turno)}</td>
+            <>
+              <div className="sis-table-wrapper">
+                <table className="sis-table">
+                  <thead>
+                    <tr>
+                      <th>Turno</th>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Paciente</th>
+                      <th>DNI</th>
+                      <th>Agenda</th>
+                      <th>Médico</th>
+                      <th>Estado</th>
+                      <th>Acciones administrativas</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {turnosPaginados.map((turno) => (
+                      <tr key={turno.turnoId}>
+                        <td className="sis-cell-strong">{turno.turnoId}</td>
+                        <td>{turno.fecha || "-"}</td>
+                        <td>{formatearHora(turno.horaDesde)} - {formatearHora(turno.horaHasta)}</td>
+                        <td>{turno.pacienteNombre && turno.pacienteApellido ? `${turno.pacienteNombre} ${turno.pacienteApellido}` : ""}</td>
+                        <td>{turno.pacienteDni || ""}</td>
+                        <td>{turno.agendaNombre || "-"}</td>
+                        <td>{turno.medicosAgenda || "-"}</td>
+                        <td>
+                          <span className={obtenerClaseEstado(turno.estadoTurno)}>
+                            {formatearEstado(turno.estadoTurno)}
+                          </span>
+                        </td>
+                        <td className="sis-actions-cell">{renderAcciones(turno)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                style={{
+                  marginTop: "1rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div className="sis-text-muted">
+                  Página {paginaActual} de {totalPaginas}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() => setPaginaActual(1)}
+                    disabled={paginaActual === 1}
+                  >
+                    Primera
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                    disabled={paginaActual === 1}
+                  >
+                    Anterior
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() =>
+                      setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
+                    }
+                    disabled={paginaActual === totalPaginas}
+                  >
+                    Siguiente
+                  </button>
+
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={() => setPaginaActual(totalPaginas)}
+                    disabled={paginaActual === totalPaginas}
+                  >
+                    Última
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
