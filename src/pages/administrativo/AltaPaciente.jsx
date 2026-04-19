@@ -10,6 +10,10 @@ import BloqueBiometriaPaciente from "../../components/BloqueBiometriaPaciente";
 import BloqueResumenAltaPaciente from "../../components/BloqueResumenAltaPaciente";
 import AlertDialog from "../../components/AlertDialog";
 import { registrarRostroPaciente } from "../../api/reconocimientoApi";
+import {
+  capturarHuellaLocal,
+  registrarHuellaPaciente,
+} from "../../api/huellaApi";
 import BuscadorPacienteUniversal from "../../components/BuscadorPacienteUniversal";
 
 const initialForm = {
@@ -35,6 +39,7 @@ const initialBiometria = {
     archivo: null,
     vistaPrevia: "",
     observacion: "",
+    respuestaBackend: null,
   },
 };
 
@@ -44,6 +49,7 @@ const initialAlertDialog = {
   message: "",
   type: "info",
   buttonText: "Aceptar",
+  onAccept: null,
 };
 
 function limpiarDni(value) {
@@ -125,6 +131,7 @@ export default function AltaPaciente({
 
   const [loadingBuscar, setLoadingBuscar] = useState(false);
   const [loadingCrear, setLoadingCrear] = useState(false);
+  const [loadingCapturarHuella, setLoadingCapturarHuella] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -132,6 +139,10 @@ export default function AltaPaciente({
   const [nroHistoriaClinica, setNroHistoriaClinica] = useState(null);
 
   const [alertDialog, setAlertDialog] = useState(initialAlertDialog);
+
+  const [huellaCapturada, setHuellaCapturada] = useState(null);
+  const [dedoSeleccionado, setDedoSeleccionado] = useState("");
+  const [registrarHuella, setRegistrarHuella] = useState(false);
 
   const [openSections, setOpenSections] = useState({
     verificacion: true,
@@ -141,17 +152,16 @@ export default function AltaPaciente({
   });
 
   const disabledGeneral = useMemo(
-    () => loadingBuscar || loadingCrear,
-    [loadingBuscar, loadingCrear]
+    () => loadingBuscar || loadingCrear || loadingCapturarHuella,
+    [loadingBuscar, loadingCrear, loadingCapturarHuella]
   );
-
-  const pacienteMostrado = pacienteCreado || pacienteEncontrado;
 
   const openAlertDialog = ({
     title = "Aviso",
     message = "",
     type = "info",
     buttonText = "Aceptar",
+    onAccept = null,
   }) => {
     setAlertDialog({
       open: true,
@@ -163,6 +173,9 @@ export default function AltaPaciente({
   };
 
   const closeAlertDialog = () => {
+    if (alertDialog.onAccept) {
+      alertDialog.onAccept(); 
+    }
     setAlertDialog(initialAlertDialog);
   };
 
@@ -179,6 +192,9 @@ export default function AltaPaciente({
     setPacienteEncontrado(null);
     setPacienteCreado(null);
     setNroHistoriaClinica(null);
+    setHuellaCapturada(null);
+    setDedoSeleccionado("");
+    setRegistrarHuella(false);
     setOpenSections({
       verificacion: true,
       datos: false,
@@ -202,96 +218,95 @@ export default function AltaPaciente({
   };
 
   const cargarPacienteEncontrado = (paciente, origen = "DNI") => {
-  setPacienteEncontrado(paciente);
-  setPacienteCreado(null);
-  setModo("encontrado");
-  setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
-  cargarPacienteEnFormulario(paciente);
-  setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
-  setErrorMsg("");
-  setWarningMsg("");
+    setPacienteEncontrado(paciente);
+    setPacienteCreado(null);
+    setModo("encontrado");
+    setNroHistoriaClinica(paciente?.nroHistoriaClinica || null);
+    cargarPacienteEnFormulario(paciente);
+    setSuccessMsg(`El paciente ya existe en el sistema. Fue encontrado por ${origen}.`);
+    setErrorMsg("");
+    setWarningMsg("");
 
-  setOpenSections({
-    verificacion: true,
-    datos: true,
-    biometria: false,
-    resumen: false,
-  });
+    setOpenSections({
+      verificacion: true,
+      datos: true,
+      biometria: false,
+      resumen: false,
+    });
 
-  let mensaje = `El paciente fue encontrado correctamente por ${origen}.`;
+    let mensaje = `El paciente fue encontrado correctamente por ${origen}.`;
 
-  if (paciente?.nombre || paciente?.apellido) {
-    mensaje += ` Paciente: ${paciente?.apellido || ""}${
-      paciente?.apellido && paciente?.nombre ? ", " : ""
-    }${paciente?.nombre || ""}.`;
-  }
+    if (paciente?.nombre || paciente?.apellido) {
+      mensaje += ` Paciente: ${paciente?.apellido || ""}${paciente?.apellido && paciente?.nombre ? ", " : ""}${paciente?.nombre || ""}.`;
+    }
 
-  if (paciente?.dni) {
-    mensaje += ` DNI: ${paciente.dni}.`;
-  }
+    if (paciente?.dni) {
+      mensaje += ` DNI: ${paciente.dni}.`;
+    }
 
-  if (paciente?.nroHistoriaClinica) {
-    mensaje += ` N° Historia Clínica: ${paciente.nroHistoriaClinica}.`;
-  }
+    if (paciente?.nroHistoriaClinica) {
+      mensaje += ` N° Historia Clínica: ${paciente.nroHistoriaClinica}.`;
+    }
 
-  openAlertDialog({
-    title: "Paciente encontrado",
-    message: mensaje,
-    type: "success",
-    buttonText: "Aceptar",
-  });
+    openAlertDialog({
+      title: "Paciente encontrado",
+      message: mensaje,
+      type: "success",
+      buttonText: "Aceptar",
+    });
   };
 
   const manejarPacienteNoEncontrado = (dniLimpio, err) => {
-  setLoadingBuscar(false);
-  setNroHistoriaClinica(null);
-  setPacienteEncontrado(null);
-  setPacienteCreado(null);
+    setLoadingBuscar(false);
+    setNroHistoriaClinica(null);
+    setPacienteEncontrado(null);
+    setPacienteCreado(null);
 
-  if (err?.validation) {
-    setErrorMsg(err.message || "DNI inválido.");
+    if (err?.validation) {
+      setErrorMsg(err.message || "DNI inválido.");
+      openAlertDialog({
+        title: "Búsqueda inválida",
+        message: err.message || "El DNI ingresado no es válido.",
+        type: "warning",
+        buttonText: "Aceptar",
+      });
+      return;
+    }
+
+    const status = err?.response?.status;
+    const msg = parseBackendMessage(err);
+
+    if (status === 400 && msg.includes("No existe paciente con DNI")) {
+      setModo("nuevo");
+      setForm((prev) => ({ ...prev, dni: dniLimpio }));
+      setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
+      setErrorMsg("");
+      setWarningMsg("");
+      expandirFlujoAlta();
+
+      openAlertDialog({
+        title: "Paciente no encontrado",
+        message: `No se encontró ningún paciente con el DNI ${dniLimpio}. Podés completar los datos para darlo de alta.`,
+        type: "info",
+        buttonText: "Aceptar",
+      });
+      return;
+    }
+
+    setErrorMsg(msg || "Error al buscar paciente.");
     openAlertDialog({
-      title: "Búsqueda inválida",
-      message: err.message || "El DNI ingresado no es válido.",
-      type: "warning",
+      title: "Error en la búsqueda",
+      message: msg || "Ocurrió un error al buscar paciente.",
+      type: "error",
       buttonText: "Aceptar",
     });
-    return;
-  }
-
-  const status = err?.response?.status;
-  const msg = parseBackendMessage(err);
-
-  if (status === 400 && msg.includes("No existe paciente con DNI")) {
-    setModo("nuevo");
-    setForm((prev) => ({ ...prev, dni: dniLimpio }));
-    setSuccessMsg("No existe el paciente. Completá los datos para crearlo.");
-    setErrorMsg("");
-    setWarningMsg("");
-    expandirFlujoAlta();
-
-    openAlertDialog({
-      title: "Paciente no encontrado",
-      message: `No se encontró ningún paciente con el DNI ${dniLimpio}. Podés completar los datos para darlo de alta.`,
-      type: "info",
-      buttonText: "Aceptar",
-    });
-    return;
-  }
-
-  setErrorMsg(msg || "Error al buscar paciente.");
-  openAlertDialog({
-    title: "Error en la búsqueda",
-    message: msg || "Ocurrió un error al buscar paciente.",
-    type: "error",
-    buttonText: "Aceptar",
-  });
-};
+  };
 
   const setSectionOpen = (sectionKey, nextValue) => {
     setOpenSections((prev) => ({
       ...prev,
-      [sectionKey]: typeof nextValue === "boolean" ? nextValue : !prev[sectionKey],
+      [sectionKey]:
+        typeof nextValue === "boolean" ? nextValue : !prev[sectionKey],
     }));
   };
 
@@ -374,6 +389,12 @@ export default function AltaPaciente({
   };
 
   const limpiarBiometria = (tipo) => {
+    if (tipo === "huella") {
+      setHuellaCapturada(null);
+      setDedoSeleccionado("");
+      setRegistrarHuella(false);
+    }
+
     actualizarEstadoBiometria(tipo, {
       archivo: null,
       vistaPrevia: "",
@@ -381,6 +402,65 @@ export default function AltaPaciente({
       observacion: "",
       respuestaBackend: null,
     });
+  };
+
+  const handleCapturarHuella = async () => {
+    if (disabledGeneral || modo !== "nuevo") return;
+
+    if (!dedoSeleccionado) {
+      openAlertDialog({
+        title: "Dato requerido",
+        message: "Seleccioná el dedo antes de capturar la huella.",
+        type: "warning",
+        buttonText: "Aceptar",
+      });
+      return;
+    }
+
+    setLoadingCapturarHuella(true);
+
+    try {
+      const captura = await capturarHuellaLocal();
+
+      setHuellaCapturada(captura);
+      setRegistrarHuella(true);
+
+      actualizarEstadoBiometria("huella", {
+        estado: "capturada",
+        respuestaBackend: captura,
+        observacion: `Huella capturada correctamente para ${dedoSeleccionado.replaceAll("_", " ").toLowerCase()}.`,
+      });
+
+      openAlertDialog({
+        title: "Huella capturada",
+        message: "La huella fue capturada correctamente.",
+        type: "success",
+        buttonText: "Aceptar",
+      });
+    } catch (err) {
+      const msg =
+        parseBackendMessage(err) ||
+        err?.message ||
+        "No se pudo capturar la huella.";
+
+      setHuellaCapturada(null);
+      setRegistrarHuella(false);
+
+      actualizarEstadoBiometria("huella", {
+        estado: "error",
+        respuestaBackend: null,
+        observacion: msg,
+      });
+
+      openAlertDialog({
+        title: "Error al capturar huella",
+        message: msg,
+        type: "error",
+        buttonText: "Aceptar",
+      });
+    } finally {
+      setLoadingCapturarHuella(false);
+    }
   };
 
   const crearNuevoPaciente = async () => {
@@ -462,10 +542,37 @@ export default function AltaPaciente({
             const base = prev ? `${prev} ` : "";
             return (
               base +
-              (
-                parseBackendMessage(errRostro) ||
-                "El paciente se creó, pero no se pudo registrar el rostro."
-              )
+              (parseBackendMessage(errRostro) ||
+                "El paciente se creó, pero no se pudo registrar el rostro.")
+            );
+          });
+        }
+      }
+
+      if (pacienteId && registrarHuella && huellaCapturada && dedoSeleccionado) {
+        try {
+          const respuestaHuella = await registrarHuellaPaciente({
+            pacienteId,
+            dedo: dedoSeleccionado,
+            rawImageBase64: huellaCapturada.rawImageBase64,
+            width: huellaCapturada.width,
+            height: huellaCapturada.height,
+            dpi: huellaCapturada.dpi,
+            quality: huellaCapturada.quality || null,
+          });
+
+          actualizarEstadoBiometria("huella", {
+            estado: "registrada",
+            respuestaBackend: respuestaHuella,
+            observacion: `Huella registrada correctamente para ${dedoSeleccionado.replaceAll("_", " ").toLowerCase()}.`,
+          });
+        } catch (errHuella) {
+          setWarningMsg((prev) => {
+            const base = prev ? `${prev} ` : "";
+            return (
+              base +
+              (parseBackendMessage(errHuella) ||
+                "El paciente se creó, pero no se pudo registrar la huella.")
             );
           });
         }
@@ -475,7 +582,9 @@ export default function AltaPaciente({
       setModo("encontrado");
       setSuccessMsg(textoExitoCreacion);
       setNroHistoriaClinica(
-        pacienteFinal?.nroHistoriaClinica || creadoBase?.nroHistoriaClinica || null
+        pacienteFinal?.nroHistoriaClinica ||
+          creadoBase?.nroHistoriaClinica ||
+          null
       );
 
       cargarPacienteEnFormulario({
@@ -492,9 +601,13 @@ export default function AltaPaciente({
 
       let mensajeDialogo = textoExitoCreacion;
 
-      if (pacienteFinal?.nroHistoriaClinica || creadoBase?.nroHistoriaClinica) {
+      if (
+        pacienteFinal?.nroHistoriaClinica ||
+        creadoBase?.nroHistoriaClinica
+      ) {
         mensajeDialogo += ` N° Historia Clínica: ${
-          pacienteFinal?.nroHistoriaClinica || creadoBase?.nroHistoriaClinica
+          pacienteFinal?.nroHistoriaClinica ||
+          creadoBase?.nroHistoriaClinica
         }.`;
       }
 
@@ -502,11 +615,16 @@ export default function AltaPaciente({
         mensajeDialogo += ` Rostro registrado: ${biometria.rostro.respuestaBackend.referenciaBiometrica}.`;
       }
 
+      if (biometria.huella?.respuestaBackend?.id) {
+        mensajeDialogo += ` Huella registrada: ${biometria.huella.respuestaBackend.dedo}.`;
+      }
+
       openAlertDialog({
         title: "Paciente creado exitosamente",
         message: mensajeDialogo,
         type: "success",
         buttonText: "Aceptar",
+        onAccept: () => navigate(-1), // volver a la pantalla anterior
       });
     } catch (err) {
       const status = err?.response?.status;
@@ -574,7 +692,15 @@ export default function AltaPaciente({
 
           {biometria.rostro?.respuestaBackend?.referenciaBiometrica && (
             <div className="mt-2">
-              <strong>Rostro registrado:</strong> {biometria.rostro.respuestaBackend.referenciaBiometrica}
+              <strong>Rostro registrado:</strong>{" "}
+              {biometria.rostro.respuestaBackend.referenciaBiometrica}
+            </div>
+          )}
+
+          {biometria.huella?.respuestaBackend?.id && (
+            <div className="mt-2">
+              <strong>Huella registrada:</strong>{" "}
+              {biometria.huella.respuestaBackend.dedo}
             </div>
           )}
         </div>
@@ -619,13 +745,18 @@ export default function AltaPaciente({
           isOpen={openSections.biometria}
           onToggle={() => setSectionOpen("biometria")}
         >
-          <BloqueBiometriaPaciente
-            biometria={biometria}
-            disabled={disabledGeneral || modo !== "nuevo"}
-            onArchivoChange={manejarArchivoBiometrico}
-            onObservacionChange={actualizarEstadoBiometria}
-            onLimpiar={limpiarBiometria}
-          />
+        <BloqueBiometriaPaciente
+          biometria={biometria}
+          disabled={disabledGeneral || modo !== "nuevo"}
+          onArchivoChange={manejarArchivoBiometrico}
+          onObservacionChange={actualizarEstadoBiometria}
+          onLimpiar={limpiarBiometria}
+          dedoSeleccionado={dedoSeleccionado}
+          onDedoSeleccionadoChange={setDedoSeleccionado}
+          huellaCapturada={huellaCapturada}
+          onCapturarHuella={handleCapturarHuella}
+          loadingCapturarHuella={loadingCapturarHuella}
+        />
         </AltaPacienteAccordion>
 
         <AltaPacienteAccordion

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { obtenerPacientePorDni } from "../api/pacientesApi";
 import BusquedaPacientePorRostro from "./BusquedaPacientePorRostro";
-import BusquedaPacientePorHuellaMock from "./BusquedaPacientePorHuellaMock";
+import BusquedaPacientePorHuella from "./BusquedaPacientePorHuella";
 
 function limpiarDni(value) {
   return (value || "").replace(/\D/g, "");
@@ -50,7 +50,7 @@ export default function BuscadorPacienteUniversal({
       limpiar: "Limpiar",
       rostroTitulo: "Búsqueda por rostro",
       huellaTitulo: "Búsqueda por huella",
-      huellaButtonText: "Buscar por huella (mock)",
+      huellaButtonText: "Buscar por huella",
       ...labels,
     }),
     [labels]
@@ -215,14 +215,15 @@ export default function BuscadorPacienteUniversal({
 
           {accordionOpen.huella && (
             <div style={{ marginTop: 12 }}>
-              <BusquedaPacientePorHuellaMock
-                disabled={disabledGeneral}
-                buttonText={textos.huellaButtonText}
-                onPacienteEncontrado={(paciente) =>
-                  onPacienteEncontrado?.(paciente, "huella")
-                }
-                {...huellaProps}
-              />
+                <BusquedaPacientePorHuella
+                  disabled={disabledGeneral}
+                  buttonText={textos.huellaButtonText}
+                  showOwnDialogs={false}
+                  onPacienteEncontrado={(paciente) =>
+                    onPacienteEncontrado?.(paciente, "huella")
+                  }
+                  {...huellaProps}
+                />
             </div>
           )}
         </div>
