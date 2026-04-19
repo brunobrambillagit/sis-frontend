@@ -5,10 +5,18 @@ import {
 } from "../api/huellaApi";
 import AlertDialog from "./AlertDialog";
 
+function parseBackendMessage(err) {
+  const data = err?.response?.data;
+  if (typeof data === "string") return data;
+  return data?.message || data?.error || data?.mensaje || "";
+}
+
 export default function BusquedaPacientePorHuella({
   onPacienteEncontrado,
+  onPacienteNoEncontrado,
   disabled = false,
   showOwnDialogs = true,
+  buttonText = "Buscar por huella",
 }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({
@@ -18,12 +26,19 @@ export default function BusquedaPacientePorHuella({
     type: "info",
   });
 
-  const abrirAlert = (data) => {
+  const abrirAlert = (title, message, type = "info") => {
     if (!showOwnDialogs) return;
-    setAlert({ open: true, ...data });
+    setAlert({
+      open: true,
+      title,
+      message,
+      type,
+    });
   };
 
-  const cerrarAlert = () => setAlert((prev) => ({ ...prev, open: false }));
+  const cerrarAlert = () => {
+    setAlert((prev) => ({ ...prev, open: false }));
+  };
 
   const handleBuscar = async () => {
     if (disabled) return;
@@ -40,24 +55,21 @@ export default function BusquedaPacientePorHuella({
         dpi: captura.dpi,
       });
 
-      abrirAlert({
-        title: "Paciente encontrado",
-        message: `Paciente: ${paciente.apellido}, ${paciente.nombre}`,
-        type: "success",
-      });
+      abrirAlert(
+        "Paciente encontrado",
+        `Paciente: ${paciente.apellido}, ${paciente.nombre}`,
+        "success"
+      );
 
       onPacienteEncontrado?.(paciente);
     } catch (err) {
       const msg =
-        err?.response?.data?.error ||
+        parseBackendMessage(err) ||
         err?.message ||
         "No se encontró paciente con esa huella.";
 
-      abrirAlert({
-        title: "Resultado de búsqueda",
-        message: msg,
-        type: "warning",
-      });
+      abrirAlert("Resultado de búsqueda", msg, "warning");
+      onPacienteNoEncontrado?.(msg, err);
     } finally {
       setLoading(false);
     }
@@ -71,7 +83,7 @@ export default function BusquedaPacientePorHuella({
         onClick={handleBuscar}
         disabled={disabled || loading}
       >
-        {loading ? "Capturando..." : "Buscar por huella"}
+        {loading ? "Capturando..." : buttonText}
       </button>
 
       <AlertDialog

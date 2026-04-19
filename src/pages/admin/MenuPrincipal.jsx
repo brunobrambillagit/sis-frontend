@@ -36,6 +36,12 @@ export default function MenuPrincipalAdmin() {
             <h3>AWS Rekognition</h3>
             <p>Visualización y eliminación conjunta de rostros en Rekognition y S3.</p>
           </div>
+
+          <div className="menu-box-admin huella" onClick={() => navigate("/admin/huellas")}>
+            🖐️
+            <h3>Huellas U4500</h3>
+            <p>Visualización y desactivación de huellas registradas.</p>
+          </div>
         </div>
       </div>
     </>

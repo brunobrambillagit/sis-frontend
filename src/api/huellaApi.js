@@ -25,3 +25,13 @@ export async function registrarHuellaPaciente(payload) {
   const { data } = await axiosClient.post("/api/huellas/registrar", payload);
   return data;
 }
+
+export async function obtenerHuellasAdmin() {
+  const { data } = await axiosClient.get("/api/huellas/admin");
+  return data;
+}
+
+export async function eliminarHuellaAdmin(reconocimientoHuellaId) {
+  const { data } = await axiosClient.delete(`/api/huellas/${reconocimientoHuellaId}`);
+  return data;
+}

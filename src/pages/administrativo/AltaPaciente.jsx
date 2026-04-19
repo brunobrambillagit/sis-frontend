@@ -169,14 +169,17 @@ export default function AltaPaciente({
       message,
       type,
       buttonText,
+      onAccept,
     });
   };
 
   const closeAlertDialog = () => {
-    if (alertDialog.onAccept) {
-      alertDialog.onAccept(); 
-    }
+    const accion = alertDialog.onAccept;
     setAlertDialog(initialAlertDialog);
+
+    if (typeof accion === "function") {
+      accion();
+    }
   };
 
   const resetAlerts = () => {
@@ -343,6 +346,29 @@ export default function AltaPaciente({
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const manejarPacienteNoEncontradoBiometria = (origen, mensaje) => {
+  setPacienteEncontrado(null);
+  setPacienteCreado(null);
+  setNroHistoriaClinica(null);
+  setModo("nuevo");
+  setErrorMsg("");
+  setWarningMsg("");
+  setSuccessMsg(
+    `No se encontró ningún paciente por ${origen}. Completá los datos para crearlo.`
+  );
+
+  expandirFlujoAlta();
+
+  openAlertDialog({
+    title: "Paciente no encontrado",
+    message:
+      mensaje ||
+      `No se encontró ningún paciente por ${origen}. Podés completar los datos para darlo de alta.`,
+    type: "warning",
+    buttonText: "Aceptar",
+  });
   };
 
   const handleDniBusquedaChange = (value) => {
@@ -624,7 +650,7 @@ export default function AltaPaciente({
         message: mensajeDialogo,
         type: "success",
         buttonText: "Aceptar",
-        onAccept: () => navigate(-1), // volver a la pantalla anterior
+        onAccept: () => navigate(-1),
       });
     } catch (err) {
       const status = err?.response?.status;
@@ -720,6 +746,22 @@ export default function AltaPaciente({
             onPacienteNoEncontradoDni={manejarPacienteNoEncontrado}
             onReset={resetTodo}
             disabled={disabledGeneral}
+            rostroProps={{
+              onPacienteNoEncontrado: (mensaje) => {
+                manejarPacienteNoEncontradoBiometria(
+                  "rostro",
+                  mensaje || "No se encontró ningún paciente con el rostro indicado."
+                );
+              },
+            }}
+            huellaProps={{
+              onPacienteNoEncontrado: (mensaje) => {
+                manejarPacienteNoEncontradoBiometria(
+                  "huella",
+                  mensaje || "No se encontró ningún paciente con esa huella."
+                );
+              },
+            }}
           />
         </AltaPacienteAccordion>
 
@@ -745,18 +787,18 @@ export default function AltaPaciente({
           isOpen={openSections.biometria}
           onToggle={() => setSectionOpen("biometria")}
         >
-        <BloqueBiometriaPaciente
-          biometria={biometria}
-          disabled={disabledGeneral || modo !== "nuevo"}
-          onArchivoChange={manejarArchivoBiometrico}
-          onObservacionChange={actualizarEstadoBiometria}
-          onLimpiar={limpiarBiometria}
-          dedoSeleccionado={dedoSeleccionado}
-          onDedoSeleccionadoChange={setDedoSeleccionado}
-          huellaCapturada={huellaCapturada}
-          onCapturarHuella={handleCapturarHuella}
-          loadingCapturarHuella={loadingCapturarHuella}
-        />
+          <BloqueBiometriaPaciente
+            biometria={biometria}
+            disabled={disabledGeneral || modo !== "nuevo"}
+            onArchivoChange={manejarArchivoBiometrico}
+            onObservacionChange={actualizarEstadoBiometria}
+            onLimpiar={limpiarBiometria}
+            dedoSeleccionado={dedoSeleccionado}
+            onDedoSeleccionadoChange={setDedoSeleccionado}
+            huellaCapturada={huellaCapturada}
+            onCapturarHuella={handleCapturarHuella}
+            loadingCapturarHuella={loadingCapturarHuella}
+          />
         </AltaPacienteAccordion>
 
         <AltaPacienteAccordion
@@ -785,5 +827,6 @@ export default function AltaPaciente({
         type={alertDialog.type}
       />
     </div>
+
   );
 }

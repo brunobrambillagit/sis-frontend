@@ -11,6 +11,7 @@ function parseBackendMessage(err) {
 
 export default function BusquedaPacientePorRostro({
   onPacienteEncontrado,
+  onPacienteNoEncontrado,
   disabled = false,
   titulo = "Búsqueda por rostro",
   descripcion = "Podés seleccionar una imagen o tomar una foto para buscar al paciente.",
@@ -54,11 +55,11 @@ export default function BusquedaPacientePorRostro({
 
   const buscar = async () => {
     if (!archivo) {
-      showDialog(
-        "Error",
-        "Primero debés seleccionar una imagen o tomar una foto.",
-        "error"
-      );
+      const mensaje = "Primero debés seleccionar una imagen o tomar una foto.";
+
+      showDialog("Error", mensaje, "error");
+      onPacienteNoEncontrado?.(mensaje, { validation: true });
+
       return;
     }
 
@@ -75,12 +76,12 @@ export default function BusquedaPacientePorRostro({
 
       onPacienteEncontrado?.(paciente);
     } catch (err) {
-      showDialog(
-        "Error",
+      const mensaje =
         parseBackendMessage(err) ||
-          "No se pudo buscar el paciente por rostro.",
-        "error"
-      );
+        "No se pudo buscar el paciente por rostro.";
+
+      showDialog("Resultado de búsqueda", mensaje, "warning");
+      onPacienteNoEncontrado?.(mensaje, err);
     } finally {
       setBuscando(false);
     }

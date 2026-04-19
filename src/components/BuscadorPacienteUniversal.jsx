@@ -188,6 +188,9 @@ export default function BuscadorPacienteUniversal({
                 onPacienteEncontrado={(paciente) =>
                   onPacienteEncontrado?.(paciente, "rostro")
                 }
+                onPacienteNoEncontrado={(mensaje, err) =>
+                  rostroProps?.onPacienteNoEncontrado?.(mensaje, err)
+                }
                 {...rostroProps}
               />
             </div>
@@ -215,15 +218,18 @@ export default function BuscadorPacienteUniversal({
 
           {accordionOpen.huella && (
             <div style={{ marginTop: 12 }}>
-                <BusquedaPacientePorHuella
-                  disabled={disabledGeneral}
-                  buttonText={textos.huellaButtonText}
-                  showOwnDialogs={false}
-                  onPacienteEncontrado={(paciente) =>
-                    onPacienteEncontrado?.(paciente, "huella")
-                  }
-                  {...huellaProps}
-                />
+              <BusquedaPacientePorHuella
+                disabled={disabledGeneral}
+                showOwnDialogs={false}
+                buttonText={textos.huellaButtonText}
+                onPacienteEncontrado={(paciente) =>
+                  onPacienteEncontrado?.(paciente, "huella")
+                }
+                onPacienteNoEncontrado={(mensaje, err) =>
+                  huellaProps?.onPacienteNoEncontrado?.(mensaje, err)
+                }
+                {...huellaProps}
+              />
             </div>
           )}
         </div>

@@ -36,6 +36,7 @@ import BusquedaPacienteMedica from "../pages/medico/busquedas/BusquedaPacienteMe
 import UsuariosAdmin from "../pages/admin/usuarios/UsuariosAdmin";
 import CamasAdmin from "../pages/admin/camas/CamasAdmin";
 import RekognitionAdmin from "../pages/admin/aws/RekognitionAdmin";
+import HuellaAdmin from "../pages/admin/huellas/HuellaAdmin";
 
 const LayoutConHeader = () => {
   return <Outlet />;
@@ -108,6 +109,7 @@ export default function AppRouter() {
         <Route path="agendas" element={<AgendasConsultorios />} />
         <Route path="camas" element={<CamasAdmin />} />
         <Route path="aws-rekognition" element={<RekognitionAdmin />} />
+        <Route path="huellas" element={<HuellaAdmin />} />
         <Route path="*" element={<h2 style={{ padding: "20px" }}>Sección no encontrada</h2>} />
       </Route>
     </Routes>
