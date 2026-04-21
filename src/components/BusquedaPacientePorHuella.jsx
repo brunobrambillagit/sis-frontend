@@ -79,7 +79,7 @@ export default function BusquedaPacientePorHuella({
     <div style={{ marginTop: 16 }}>
       <button
         type="button"
-        className="sis-btn sis-btn-outline"
+        className="sis-btn sis-btn-primary"
         onClick={handleBuscar}
         disabled={disabled || loading}
       >

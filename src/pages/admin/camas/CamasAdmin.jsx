@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../components/Header";
+import AlertDialog from "../../../components/AlertDialog";
+import ConfirmDialog from "../../../components/ConfirmDialog";
 import {
   obtenerCamasAdmin,
   crearCamaAdmin,
@@ -15,14 +17,155 @@ const EMPTY_FORM = {
   tipoServicio: "HOSPITALIZACION",
 };
 
+const EMPTY_DIALOG = {
+  open: false,
+  title: "",
+  message: "",
+  type: "info",
+};
+
+const EMPTY_CONFIRM = {
+  open: false,
+  title: "",
+  message: "",
+  action: null,
+};
+
+const formGridStyle = {
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+};
+
+const statsGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 16,
+  marginBottom: 16,
+};
+
+const searchWrapStyle = {
+  minWidth: 280,
+  flex: "1 1 320px",
+};
+
+const sectionTitleStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+};
+
+const selectedRowStyle = {
+  backgroundColor: "#eef6ff",
+};
+
+const resumeGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 14,
+  marginBottom: 18,
+};
+
+function getTipoServicioLabel(tipo) {
+  if (tipo === "HOSPITALIZACION") return "Hospitalización";
+  if (tipo === "GUARDIA") return "Guardia";
+  if (tipo === "CONSULTORIOS") return "Consultorios";
+  return tipo || "-";
+}
+
+function getTipoServicioBadgeStyle(tipo) {
+  if (tipo === "HOSPITALIZACION") {
+    return {
+      backgroundColor: "#eefbf3",
+      color: "#157347",
+      border: "1px solid #b8e3c8",
+    };
+  }
+
+  if (tipo === "GUARDIA") {
+    return {
+      backgroundColor: "#fff7e6",
+      color: "#9a6700",
+      border: "1px solid #f5d48a",
+    };
+  }
+
+  if (tipo === "CONSULTORIOS") {
+    return {
+      backgroundColor: "#e8f7fe",
+      color: "#055160",
+      border: "1px solid #b6effb",
+    };
+  }
+
+  return {
+    backgroundColor: "#f8fafc",
+    color: "#475569",
+    border: "1px solid #dbe4ee",
+  };
+}
+
+function getEstadoBadgeStyle(estado) {
+  const value = (estado || "").toUpperCase();
+
+  if (value.includes("DISPON")) {
+    return {
+      backgroundColor: "#eefbf3",
+      color: "#157347",
+      border: "1px solid #b8e3c8",
+    };
+  }
+
+  if (value.includes("OCUP")) {
+    return {
+      backgroundColor: "#fbe9ec",
+      color: "#842029",
+      border: "1px solid #f5c2c7",
+    };
+  }
+
+  if (value.includes("MANT") || value.includes("INACT")) {
+    return {
+      backgroundColor: "#f1f5f9",
+      color: "#475569",
+      border: "1px solid #d8e0e8",
+    };
+  }
+
+  return {
+    backgroundColor: "#f8fafc",
+    color: "#475569",
+    border: "1px solid #dbe4ee",
+  };
+}
+
+function StatCard({ titulo, valor, descripcion }) {
+  return (
+    <div className="sis-detail-item sis-detail-item--highlight">
+      <span className="sis-detail-label">{titulo}</span>
+      <div className="sis-detail-value" style={{ fontSize: "1.25rem" }}>
+        {valor}
+      </div>
+      <div className="sis-text-muted" style={{ fontSize: "0.9rem", marginTop: 6 }}>
+        {descripcion}
+      </div>
+    </div>
+  );
+}
+
+function DataResumeItem({ label, value }) {
+  return (
+    <div className="sis-detail-item">
+      <span className="sis-detail-label">{label}</span>
+      <div className="sis-detail-value">{value || "-"}</div>
+    </div>
+  );
+}
+
 export default function CamasAdmin() {
   const navigate = useNavigate();
 
   const [camas, setCamas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [error, setError] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
 
@@ -30,20 +173,55 @@ export default function CamasAdmin() {
   const [camaSeleccionada, setCamaSeleccionada] = useState(null);
   const [formEditar, setFormEditar] = useState(EMPTY_FORM);
 
+  const [dialog, setDialog] = useState(EMPTY_DIALOG);
+  const [confirmDialog, setConfirmDialog] = useState(EMPTY_CONFIRM);
+
   useEffect(() => {
     cargarCamas();
   }, []);
 
+  const showDialog = (title, message, type = "info") => {
+    setDialog({
+      open: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const cerrarDialogo = () => {
+    setDialog(EMPTY_DIALOG);
+  };
+
+  const abrirConfirmacion = (title, message, action) => {
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      action,
+    });
+  };
+
+  const cerrarConfirmacion = () => {
+    if (guardando) return;
+    setConfirmDialog(EMPTY_CONFIRM);
+  };
+
   const cargarCamas = async () => {
     try {
       setLoading(true);
-      setError("");
       const data = await obtenerCamasAdmin();
       setCamas(Array.isArray(data) ? data : []);
       setPaginaActual(1);
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || err?.response?.data || "No se pudieron cargar las camas.");
+      showDialog(
+        "Error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          "No se pudieron cargar las camas.",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -58,7 +236,13 @@ export default function CamasAdmin() {
       const descripcion = (c.descripcion || "").toLowerCase();
       const tipo = (c.tipoServicio || "").toLowerCase();
       const estado = (c.estado || "").toLowerCase();
-      return codigo.includes(q) || descripcion.includes(q) || tipo.includes(q) || estado.includes(q);
+
+      return (
+        codigo.includes(q) ||
+        descripcion.includes(q) ||
+        tipo.includes(q) ||
+        estado.includes(q)
+      );
     });
   }, [camas, busqueda]);
 
@@ -81,23 +265,16 @@ export default function CamasAdmin() {
   const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
   const camasPaginadas = camasFiltradas.slice(indiceInicio, indiceFin);
 
-  const handleCrear = async (e) => {
-    e.preventDefault();
-    try {
-      setGuardando(true);
-      setMensaje("");
-      setError("");
-      await crearCamaAdmin(formCrear);
-      setMensaje("Cama creada correctamente.");
-      setFormCrear(EMPTY_FORM);
-      await cargarCamas();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || err?.response?.data || "No se pudo crear la cama.");
-    } finally {
-      setGuardando(false);
-    }
-  };
+  const totalCamas = camas.length;
+  const totalDisponibles = camas.filter((c) =>
+    String(c.estado || "").toUpperCase().includes("DISPON")
+  ).length;
+  const totalOcupadas = camas.filter((c) =>
+    String(c.estado || "").toUpperCase().includes("OCUP")
+  ).length;
+  const totalHospitalizacion = camas.filter(
+    (c) => c.tipoServicio === "HOSPITALIZACION"
+  ).length;
 
   const seleccionarCama = (cama) => {
     setCamaSeleccionada(cama);
@@ -106,27 +283,95 @@ export default function CamasAdmin() {
       descripcion: cama.descripcion || "",
       tipoServicio: cama.tipoServicio || "HOSPITALIZACION",
     });
-    setMensaje("");
-    setError("");
+    window.scrollTo({ top: 10000, behavior: "smooth" });
   };
 
-  const handleActualizar = async (e) => {
-    e.preventDefault();
+  const limpiarSeleccion = () => {
+    setCamaSeleccionada(null);
+    setFormEditar(EMPTY_FORM);
+  };
+
+  const ejecutarCrear = async () => {
+    try {
+      setGuardando(true);
+      await crearCamaAdmin(formCrear);
+      setFormCrear(EMPTY_FORM);
+      await cargarCamas();
+      cerrarConfirmacion();
+      showDialog("Cama creada", "Cama creada correctamente.", "success");
+    } catch (err) {
+      console.error(err);
+      cerrarConfirmacion();
+      showDialog(
+        "Error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          "No se pudo crear la cama.",
+        "error"
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const ejecutarActualizar = async () => {
     if (!camaSeleccionada?.id) return;
 
     try {
       setGuardando(true);
-      setMensaje("");
-      setError("");
       await actualizarCamaAdmin(camaSeleccionada.id, formEditar);
-      setMensaje("Cama actualizada correctamente.");
       await cargarCamas();
+      cerrarConfirmacion();
+      showDialog("Cama actualizada", "Cama actualizada correctamente.", "success");
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || err?.response?.data || "No se pudo actualizar la cama.");
+      cerrarConfirmacion();
+      showDialog(
+        "Error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          "No se pudo actualizar la cama.",
+        "error"
+      );
     } finally {
       setGuardando(false);
     }
+  };
+
+  const confirmarAccion = async () => {
+    switch (confirmDialog.action) {
+      case "crear":
+        await ejecutarCrear();
+        break;
+      case "actualizar":
+        await ejecutarActualizar();
+        break;
+      default:
+        cerrarConfirmacion();
+        break;
+    }
+  };
+
+  const handleCrear = async (e) => {
+    e.preventDefault();
+
+    abrirConfirmacion(
+      "Confirmar creación",
+      "¿Seguro que querés crear esta cama?",
+      "crear"
+    );
+  };
+
+  const handleActualizar = async (e) => {
+    e.preventDefault();
+
+    if (!camaSeleccionada?.id) return;
+
+    abrirConfirmacion(
+      "Confirmar actualización",
+      `¿Seguro que querés guardar los cambios de la cama #${camaSeleccionada.id}?`,
+      "actualizar"
+    );
   };
 
   return (
@@ -137,42 +382,73 @@ export default function CamasAdmin() {
         <div className="sis-page-header">
           <div className="sis-page-title-wrap">
             <h2 className="sis-page-title">Administración de camas</h2>
+            <p className="sis-page-subtitle">
+              Gestioná altas, edición y consulta de camas disponibles dentro del sistema.
+            </p>
           </div>
 
           <div className="sis-page-actions">
-            <button className="sis-btn sis-btn-outline" onClick={() => navigate(-1)}>
+            <button
+              className="sis-btn sis-btn-outline"
+              onClick={() => navigate(-1)}
+              type="button"
+            >
               Volver
             </button>
-            <button className="sis-btn sis-btn-outline" onClick={cargarCamas} disabled={loading}>
+            <button
+              className="sis-btn sis-btn-outline"
+              onClick={cargarCamas}
+              disabled={loading}
+              type="button"
+            >
               {loading ? "Actualizando..." : "Actualizar"}
             </button>
           </div>
         </div>
 
-        {mensaje && (
-          <div className="sis-alert sis-alert-success" role="alert" style={{ marginBottom: 16 }}>
-            {mensaje}
-          </div>
-        )}
+        <div style={statsGridStyle}>
+          <StatCard
+            titulo="Total"
+            valor={totalCamas}
+            descripcion="Camas registradas en el sistema"
+          />
+          <StatCard
+            titulo="Disponibles"
+            valor={totalDisponibles}
+            descripcion="Camas actualmente disponibles"
+          />
+          <StatCard
+            titulo="Ocupadas"
+            valor={totalOcupadas}
+            descripcion="Camas actualmente ocupadas"
+          />
+          <StatCard
+            titulo="Hospitalización"
+            valor={totalHospitalizacion}
+            descripcion="Camas asociadas a hospitalización"
+          />
+        </div>
 
-        {error && (
-          <div className="sis-alert sis-alert-danger" role="alert" style={{ marginBottom: 16 }}>
-            {error}
-          </div>
-        )}
-
-        <div className="sis-card" style={{ marginBottom: 16 }}>
+        <div className="sis-card" style={{ marginBottom: 24 }}>
           <div className="sis-card-body">
-            <h3 className="sis-page-title">Crear cama</h3>
+            <div style={sectionTitleStyle}>
+              <h3 className="sis-page-title2">Crear cama</h3>
+              <p className="sis-page-subtitle">
+                Completá los datos para registrar una nueva cama dentro del sistema.
+              </p>
+            </div>
 
-            <form onSubmit={handleCrear}>
-              <div className="sis-form-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+            <form onSubmit={handleCrear} className="sis-form" style={{ marginTop: 18 }}>
+              <div className="sis-form-grid" style={formGridStyle}>
                 <div className="sis-form-group">
                   <label className="sis-form-label">Código</label>
                   <input
                     className="sis-form-control"
+                    placeholder="Ej: H-101"
                     value={formCrear.codigo}
-                    onChange={(e) => setFormCrear((prev) => ({ ...prev, codigo: e.target.value }))}
+                    onChange={(e) =>
+                      setFormCrear((prev) => ({ ...prev, codigo: e.target.value }))
+                    }
                     required
                   />
                 </div>
@@ -181,8 +457,11 @@ export default function CamasAdmin() {
                   <label className="sis-form-label">Descripción</label>
                   <input
                     className="sis-form-control"
+                    placeholder="Ej: Cama individual sala norte"
                     value={formCrear.descripcion}
-                    onChange={(e) => setFormCrear((prev) => ({ ...prev, descripcion: e.target.value }))}
+                    onChange={(e) =>
+                      setFormCrear((prev) => ({ ...prev, descripcion: e.target.value }))
+                    }
                     required
                   />
                 </div>
@@ -192,7 +471,9 @@ export default function CamasAdmin() {
                   <select
                     className="sis-form-control"
                     value={formCrear.tipoServicio}
-                    onChange={(e) => setFormCrear((prev) => ({ ...prev, tipoServicio: e.target.value }))}
+                    onChange={(e) =>
+                      setFormCrear((prev) => ({ ...prev, tipoServicio: e.target.value }))
+                    }
                     required
                   >
                     <option value="HOSPITALIZACION">HOSPITALIZACIÓN</option>
@@ -202,8 +483,12 @@ export default function CamasAdmin() {
                 </div>
               </div>
 
-              <div className="sis-page-actions" style={{ marginTop: 16 }}>
-                <button type="submit" className="sis-btn sis-btn-primary" disabled={guardando}>
+              <div className="sis-page-actions">
+                <button
+                  type="submit"
+                  className="sis-btn sis-btn-primary"
+                  disabled={guardando}
+                >
                   {guardando ? "Guardando..." : "Crear cama"}
                 </button>
               </div>
@@ -211,13 +496,23 @@ export default function CamasAdmin() {
           </div>
         </div>
 
-        <div className="sis-card" style={{ marginBottom: 16 }}>
+        <div className="sis-card" style={{ marginBottom: 24 }}>
           <div className="sis-card-body">
-            <div className="sis-page-header" style={{ marginBottom: 16 }}>
+            <div
+              className="sis-page-header"
+              style={{ marginBottom: 18, alignItems: "flex-end" }}
+            >
               <div className="sis-page-title-wrap">
-                <h3 className="sis-page-title">Camas registradas</h3>
+                <h3 className="sis-page-title2">Camas registradas</h3>
+                <p className="sis-page-subtitle">
+                  Buscá y seleccioná una cama para ver o editar sus datos principales.
+                </p>
               </div>
-              <div style={{ minWidth: 280 }}>
+
+              <div style={searchWrapStyle}>
+                <label className="sis-form-label" style={{ marginBottom: 8, display: "block" }}>
+                  Buscar cama
+                </label>
                 <input
                   className="sis-form-control"
                   placeholder="Buscar por código, descripción, tipo o estado"
@@ -231,7 +526,7 @@ export default function CamasAdmin() {
 
             {!loading && camasFiltradas.length === 0 && (
               <div className="sis-alert sis-alert-info" role="alert">
-                No hay camas cargadas.
+                No hay camas cargadas con el filtro actual.
               </div>
             )}
 
@@ -250,24 +545,51 @@ export default function CamasAdmin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {camasPaginadas.map((cama) => (
-                        <tr key={cama.id}>
-                          <td className="sis-cell-strong">{cama.id}</td>
-                          <td>{cama.codigo}</td>
-                          <td>{cama.descripcion}</td>
-                          <td>{cama.tipoServicio}</td>
-                          <td>{cama.estado}</td>
-                          <td>
-                            <button
-                              className="sis-btn sis-btn-outline"
-                              type="button"
-                              onClick={() => seleccionarCama(cama)}
+                      {camasPaginadas.map((cama) => {
+                        const isSelected = camaSeleccionada?.id === cama.id;
+
+                        return (
+                          <tr key={cama.id}>
+                            <td
+                              className="sis-cell-strong"
+                              style={isSelected ? selectedRowStyle : undefined}
                             >
-                              Editar
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              {cama.id}
+                            </td>
+                            <td style={isSelected ? selectedRowStyle : undefined}>
+                              <span className="sis-cell-strong">{cama.codigo}</span>
+                            </td>
+                            <td style={isSelected ? selectedRowStyle : undefined}>
+                              {cama.descripcion}
+                            </td>
+                            <td style={isSelected ? selectedRowStyle : undefined}>
+                              <span
+                                className="sis-badge"
+                                style={getTipoServicioBadgeStyle(cama.tipoServicio)}
+                              >
+                                {getTipoServicioLabel(cama.tipoServicio)}
+                              </span>
+                            </td>
+                            <td style={isSelected ? selectedRowStyle : undefined}>
+                              <span
+                                className="sis-badge"
+                                style={getEstadoBadgeStyle(cama.estado)}
+                              >
+                                {cama.estado || "-"}
+                              </span>
+                            </td>
+                            <td style={isSelected ? selectedRowStyle : undefined}>
+                              <button
+                                className="sis-btn sis-btn-primary sis-btn-sm"
+                                type="button"
+                                onClick={() => seleccionarCama(cama)}
+                              >
+                                {isSelected ? "Seleccionada" : "Editar"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -283,6 +605,7 @@ export default function CamasAdmin() {
                   }}
                 >
                   <div className="sis-text-muted">
+                    Mostrando {camasPaginadas.length} de {camasFiltradas.length} camas filtradas ·
                     Página {paginaActual} de {totalPaginas}
                   </div>
 
@@ -296,7 +619,7 @@ export default function CamasAdmin() {
                   >
                     <button
                       type="button"
-                      className="sis-btn sis-btn-outline"
+                      className="sis-btn sis-btn-outline sis-btn-sm"
                       onClick={() => setPaginaActual(1)}
                       disabled={paginaActual === 1}
                     >
@@ -305,7 +628,7 @@ export default function CamasAdmin() {
 
                     <button
                       type="button"
-                      className="sis-btn sis-btn-outline"
+                      className="sis-btn sis-btn-outline sis-btn-sm"
                       onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
                       disabled={paginaActual === 1}
                     >
@@ -314,7 +637,7 @@ export default function CamasAdmin() {
 
                     <button
                       type="button"
-                      className="sis-btn sis-btn-outline"
+                      className="sis-btn sis-btn-outline sis-btn-sm"
                       onClick={() =>
                         setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
                       }
@@ -325,7 +648,7 @@ export default function CamasAdmin() {
 
                     <button
                       type="button"
-                      className="sis-btn sis-btn-outline"
+                      className="sis-btn sis-btn-outline sis-btn-sm"
                       onClick={() => setPaginaActual(totalPaginas)}
                       disabled={paginaActual === totalPaginas}
                     >
@@ -341,16 +664,46 @@ export default function CamasAdmin() {
         {camaSeleccionada && (
           <div className="sis-card">
             <div className="sis-card-body">
-              <h3 className="sis-page-title">Editar cama #{camaSeleccionada.id}</h3>
+              <div className="sis-page-header" style={{ marginBottom: 18 }}>
+                <div className="sis-page-title-wrap">
+                  <h3 className="sis-page-title2">Editar cama #{camaSeleccionada.id}</h3>
+                  <p className="sis-page-subtitle">
+                    Modificá los datos principales de la cama seleccionada.
+                  </p>
+                </div>
 
-              <form onSubmit={handleActualizar}>
-                <div className="sis-form-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                <div className="sis-page-actions">
+                  <button
+                    type="button"
+                    className="sis-btn sis-btn-outline"
+                    onClick={limpiarSeleccion}
+                  >
+                    Cerrar edición
+                  </button>
+                </div>
+              </div>
+
+              <div style={resumeGridStyle}>
+                <DataResumeItem label="Código actual" value={camaSeleccionada.codigo} />
+                <DataResumeItem label="Descripción actual" value={camaSeleccionada.descripcion} />
+                <DataResumeItem
+                  label="Tipo actual"
+                  value={getTipoServicioLabel(camaSeleccionada.tipoServicio)}
+                />
+                <DataResumeItem label="Estado actual" value={camaSeleccionada.estado} />
+              </div>
+
+              <form onSubmit={handleActualizar} className="sis-form">
+                <div className="sis-form-grid" style={formGridStyle}>
                   <div className="sis-form-group">
                     <label className="sis-form-label">Código</label>
                     <input
                       className="sis-form-control"
+                      placeholder="Ej: H-101"
                       value={formEditar.codigo}
-                      onChange={(e) => setFormEditar((prev) => ({ ...prev, codigo: e.target.value }))}
+                      onChange={(e) =>
+                        setFormEditar((prev) => ({ ...prev, codigo: e.target.value }))
+                      }
                       required
                     />
                   </div>
@@ -359,8 +712,11 @@ export default function CamasAdmin() {
                     <label className="sis-form-label">Descripción</label>
                     <input
                       className="sis-form-control"
+                      placeholder="Ej: Cama individual sala norte"
                       value={formEditar.descripcion}
-                      onChange={(e) => setFormEditar((prev) => ({ ...prev, descripcion: e.target.value }))}
+                      onChange={(e) =>
+                        setFormEditar((prev) => ({ ...prev, descripcion: e.target.value }))
+                      }
                       required
                     />
                   </div>
@@ -370,7 +726,9 @@ export default function CamasAdmin() {
                     <select
                       className="sis-form-control"
                       value={formEditar.tipoServicio}
-                      onChange={(e) => setFormEditar((prev) => ({ ...prev, tipoServicio: e.target.value }))}
+                      onChange={(e) =>
+                        setFormEditar((prev) => ({ ...prev, tipoServicio: e.target.value }))
+                      }
                       required
                     >
                       <option value="HOSPITALIZACION">HOSPITALIZACIÓN</option>
@@ -380,8 +738,12 @@ export default function CamasAdmin() {
                   </div>
                 </div>
 
-                <div className="sis-page-actions" style={{ marginTop: 16 }}>
-                  <button type="submit" className="sis-btn sis-btn-primary" disabled={guardando}>
+                <div className="sis-page-actions">
+                  <button
+                    type="submit"
+                    className="sis-btn sis-btn-primary"
+                    disabled={guardando}
+                  >
                     {guardando ? "Guardando..." : "Guardar cambios"}
                   </button>
                 </div>
@@ -390,6 +752,23 @@ export default function CamasAdmin() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmarAccion}
+        onCancel={cerrarConfirmacion}
+        loading={guardando}
+      />
+
+      <AlertDialog
+        open={dialog.open}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        onClose={cerrarDialogo}
+      />
     </>
   );
 }
