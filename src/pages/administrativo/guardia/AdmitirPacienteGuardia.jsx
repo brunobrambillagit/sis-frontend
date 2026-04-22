@@ -3,6 +3,7 @@ import { actualizarPacientePorDni } from "../../../api/pacientesApi";
 import { crearEpisodio } from "../../../api/episodiosApi";
 import { useAuth } from "../../../context/AuthContext";
 import AlertDialog from "../../../components/AlertDialog";
+import ConfirmDialog from "../../../components/ConfirmDialog";
 import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
 import { useNavigate } from "react-router-dom";
 
@@ -84,7 +85,6 @@ function parseBackendMessage(err) {
 
 export default function AdmitirPacienteGuardia() {
   const navigate = useNavigate();
-
   const { usuario } = useAuth();
 
   const [form, setForm] = useState(initialForm);
@@ -94,6 +94,9 @@ export default function AdmitirPacienteGuardia() {
 
   const [loadingGuardarYAdmitir, setLoadingGuardarYAdmitir] = useState(false);
   const [dialog, setDialog] = useState(initialDialog);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dniValidadoParaAdmitir, setDniValidadoParaAdmitir] = useState("");
 
   const disabledGeneral = loadingGuardarYAdmitir;
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
@@ -114,12 +117,13 @@ export default function AdmitirPacienteGuardia() {
   };
 
   const cerrarDialogo = () => {
-    const esExito = dialog.type === "success" && dialog.title === "Admisión generada";
+    const esExito =
+      dialog.type === "success" && dialog.title === "Admisión generada";
 
     setDialog(initialDialog);
 
     if (esExito) {
-      navigate(-1); // vuelve a la pestaña anterior
+      navigate(-1);
     }
   };
 
@@ -127,6 +131,8 @@ export default function AdmitirPacienteGuardia() {
     setPacienteOriginal(paciente);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
+    setConfirmOpen(false);
+    setDniValidadoParaAdmitir("");
     cargarPacienteEnFormulario(paciente);
 
     mostrarDialogo({
@@ -175,7 +181,9 @@ export default function AdmitirPacienteGuardia() {
     setPacienteOriginal(null);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
-    cerrarDialogo();
+    setConfirmOpen(false);
+    setDniValidadoParaAdmitir("");
+    setDialog(initialDialog);
   };
 
   const onChange = (e) => {
@@ -185,6 +193,8 @@ export default function AdmitirPacienteGuardia() {
       setPacienteOriginal(null);
       setPacienteActualizado(null);
       setEpisodioCreado(null);
+      setConfirmOpen(false);
+      setDniValidadoParaAdmitir("");
       cerrarDialogo();
     }
 
@@ -206,6 +216,8 @@ export default function AdmitirPacienteGuardia() {
     setPacienteOriginal(null);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
+    setConfirmOpen(false);
+    setDniValidadoParaAdmitir("");
     cerrarDialogo();
   };
 
@@ -222,8 +234,7 @@ export default function AdmitirPacienteGuardia() {
     });
   };
 
-  const guardarCambiosYAdmitir = async (e) => {
-    e.preventDefault();
+  const validarFormularioAntesDeConfirmar = () => {
     cerrarDialogo();
     setEpisodioCreado(null);
 
@@ -233,7 +244,7 @@ export default function AdmitirPacienteGuardia() {
         message: "No se pudo obtener el usuario logueado.",
         type: "error",
       });
-      return;
+      return null;
     }
 
     if (!pacienteOriginal?.id) {
@@ -242,7 +253,7 @@ export default function AdmitirPacienteGuardia() {
         message: "Primero buscá un paciente existente.",
         type: "warning",
       });
-      return;
+      return null;
     }
 
     const dniLimpio = limpiarDni(form.dni || pacienteOriginal.dni);
@@ -252,7 +263,7 @@ export default function AdmitirPacienteGuardia() {
         message: "DNI inválido.",
         type: "error",
       });
-      return;
+      return null;
     }
 
     if (!form.nombre.trim() || !form.apellido.trim()) {
@@ -261,7 +272,7 @@ export default function AdmitirPacienteGuardia() {
         message: "Nombre y apellido son obligatorios.",
         type: "warning",
       });
-      return;
+      return null;
     }
 
     const edadNumero = form.edad === "" ? null : Number(form.edad);
@@ -271,16 +282,44 @@ export default function AdmitirPacienteGuardia() {
         message: "La edad debe ser numérica.",
         type: "error",
       });
+      return null;
+    }
+
+    return dniLimpio;
+  };
+
+  const solicitarConfirmacionGuardarYAdmitir = (e) => {
+    e.preventDefault();
+
+    const dniLimpio = validarFormularioAntesDeConfirmar();
+    if (!dniLimpio) return;
+
+    setDniValidadoParaAdmitir(dniLimpio);
+    setConfirmOpen(true);
+  };
+
+  const cerrarConfirmDialog = () => {
+    if (loadingGuardarYAdmitir) return;
+    setConfirmOpen(false);
+  };
+
+  const confirmarGuardarYAdmitir = async () => {
+    const dniLimpio =
+      dniValidadoParaAdmitir || validarFormularioAntesDeConfirmar();
+
+    if (!dniLimpio) {
+      setConfirmOpen(false);
       return;
     }
 
     setLoadingGuardarYAdmitir(true);
+
     try {
       const payloadPaciente = {
         nombre: form.nombre.trim(),
         apellido: form.apellido.trim(),
         fechaNacimiento: form.fechaNacimiento || null,
-        edad: form.edad === "" ? null : edadNumero,
+        edad: form.edad === "" ? null : Number(form.edad),
         sexo: form.sexo || null,
         estadoPersona: form.estadoPersona || null,
       };
@@ -298,15 +337,21 @@ export default function AdmitirPacienteGuardia() {
       const episodio = await crearEpisodio(payloadEpisodio);
       setEpisodioCreado(episodio);
 
+      setConfirmOpen(false);
+      setDniValidadoParaAdmitir("");
+
       mostrarDialogo({
         title: "Admisión generada",
-        message: `Paciente actualizado y admisión de guardia generada correctamente..`,
+        message: "Paciente actualizado y admisión de guardia generada correctamente.",
         type: "success",
       });
     } catch (err) {
+      setConfirmOpen(false);
       mostrarDialogo({
         title: "Error al admitir paciente",
-        message: parseBackendMessage(err) || "Error al actualizar y admitir al paciente.",
+        message:
+          parseBackendMessage(err) ||
+          "Error al actualizar y admitir al paciente.",
         type: "error",
       });
     } finally {
@@ -344,7 +389,7 @@ export default function AdmitirPacienteGuardia() {
           </div>
 
           <div className="sis-card-body">
-            <form onSubmit={guardarCambiosYAdmitir}>
+            <form onSubmit={solicitarConfirmacionGuardarYAdmitir}>
               <div className="sis-form-grid">
                 <div className="sis-form-group">
                   <label className="sis-form-label">Nombre</label>
@@ -384,7 +429,12 @@ export default function AdmitirPacienteGuardia() {
 
                 <div className="sis-form-group">
                   <label className="sis-form-label">Edad</label>
-                  <input className="sis-form-control" name="edad" value={form.edad} disabled />
+                  <input
+                    className="sis-form-control"
+                    name="edad"
+                    value={form.edad}
+                    disabled
+                  />
                   <small className="sis-text-muted">
                     La edad se calcula automaticamente a partir de la fecha de nacimiento
                   </small>
@@ -422,7 +472,12 @@ export default function AdmitirPacienteGuardia() {
 
                 <div className="sis-form-group">
                   <label className="sis-form-label">DNI</label>
-                  <input className="sis-form-control" name="dniReadonly" value={form.dni} disabled />
+                  <input
+                    className="sis-form-control"
+                    name="dniReadonly"
+                    value={form.dni}
+                    disabled
+                  />
                 </div>
 
                 <div className="sis-form-group">
@@ -450,7 +505,9 @@ export default function AdmitirPacienteGuardia() {
 
                   <div className="sis-detail-item">
                     <span className="sis-detail-label">Última modificación</span>
-                    <div className="sis-detail-value">{pacienteActivo.fechaModificacion || "-"}</div>
+                    <div className="sis-detail-value">
+                      {pacienteActivo.fechaModificacion || "-"}
+                    </div>
                   </div>
                 </div>
               )}
@@ -461,13 +518,26 @@ export default function AdmitirPacienteGuardia() {
                   className="sis-btn sis-btn-primary"
                   disabled={!pacienteOriginal || !puedeAdmitir || disabledGeneral}
                 >
-                  {loadingGuardarYAdmitir ? "Guardando y admitiendo..." : "Guardar cambios y admitir"}
+                  {loadingGuardarYAdmitir
+                    ? "Guardando y admitiendo..."
+                    : "Guardar cambios y admitir"}
                 </button>
               </div>
             </form>
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirmar admisión"
+        message="¿Estás seguro de que querés guardar los cambios del paciente y generar la admisión en guardia?"
+        onConfirm={confirmarGuardarYAdmitir}
+        onCancel={cerrarConfirmDialog}
+        confirmText="Sí, guardar y admitir"
+        cancelText="Cancelar"
+        loading={loadingGuardarYAdmitir}
+      />
 
       <AlertDialog
         open={dialog.open}
@@ -479,4 +549,4 @@ export default function AdmitirPacienteGuardia() {
       />
     </>
   );
-};
+}

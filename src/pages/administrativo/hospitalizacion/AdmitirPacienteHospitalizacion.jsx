@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { actualizarPacientePorDni } from "../../../api/pacientesApi";
 import { crearEpisodio } from "../../../api/episodiosApi";
 import { obtenerCamasDisponiblesHospitalizacion } from "../../../api/camasApi";
 import { useAuth } from "../../../context/AuthContext";
 import BuscadorPacienteUniversal from "../../../components/BuscadorPacienteUniversal";
 import AlertDialog from "../../../components/AlertDialog";
+import ConfirmDialog from "../../../components/ConfirmDialog";
 
 const initialForm = {
   dni: "",
@@ -84,6 +86,7 @@ function parseBackendMessage(err) {
 }
 
 export default function AdmitirPacienteHospitalizacion() {
+  const navigate = useNavigate();
   const { usuario } = useAuth();
 
   const [form, setForm] = useState(initialForm);
@@ -98,6 +101,9 @@ export default function AdmitirPacienteHospitalizacion() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [dialog, setDialog] = useState(initialDialog);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dniValidadoParaAdmitir, setDniValidadoParaAdmitir] = useState("");
 
   const disabledGeneral = loadingGuardarYAdmitir;
   const pacienteActivo = pacienteActualizado || pacienteOriginal;
@@ -118,9 +124,13 @@ export default function AdmitirPacienteHospitalizacion() {
   };
 
   const cerrarDialogo = () => {
+    const esExito =
+      dialog.type === "success" && dialog.title === "Admisión generada";
+
     setDialog(initialDialog);
+
     if (esExito) {
-      navigate(-1); // vuelve a la pestaña anterior
+      navigate(-1);
     }
   };
 
@@ -128,6 +138,8 @@ export default function AdmitirPacienteHospitalizacion() {
     setPacienteOriginal(paciente);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
+    setConfirmOpen(false);
+    setDniValidadoParaAdmitir("");
     cargarPacienteEnFormulario(paciente);
 
     const mensaje = `Paciente encontrado por ${origen}. Verificá o actualizá los datos, seleccioná una cama y luego generá la admisión.`;
@@ -189,7 +201,7 @@ export default function AdmitirPacienteHospitalizacion() {
   const resetAlerts = () => {
     setErrorMsg("");
     setSuccessMsg("");
-    cerrarDialogo();
+    setDialog(initialDialog);
   };
 
   const resetTodo = () => {
@@ -197,6 +209,8 @@ export default function AdmitirPacienteHospitalizacion() {
     setPacienteOriginal(null);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
+    setConfirmOpen(false);
+    setDniValidadoParaAdmitir("");
     resetAlerts();
   };
 
@@ -231,6 +245,8 @@ export default function AdmitirPacienteHospitalizacion() {
       setPacienteOriginal(null);
       setPacienteActualizado(null);
       setEpisodioCreado(null);
+      setConfirmOpen(false);
+      setDniValidadoParaAdmitir("");
       resetAlerts();
     }
 
@@ -252,6 +268,8 @@ export default function AdmitirPacienteHospitalizacion() {
     setPacienteOriginal(null);
     setPacienteActualizado(null);
     setEpisodioCreado(null);
+    setConfirmOpen(false);
+    setDniValidadoParaAdmitir("");
     resetAlerts();
   };
 
@@ -269,8 +287,7 @@ export default function AdmitirPacienteHospitalizacion() {
     }));
   };
 
-  const guardarCambiosYAdmitir = async (e) => {
-    e.preventDefault();
+  const validarFormularioAntesDeConfirmar = () => {
     resetAlerts();
     setEpisodioCreado(null);
 
@@ -282,7 +299,7 @@ export default function AdmitirPacienteHospitalizacion() {
         message: mensaje,
         type: "error",
       });
-      return;
+      return null;
     }
 
     if (!pacienteOriginal?.id) {
@@ -293,7 +310,7 @@ export default function AdmitirPacienteHospitalizacion() {
         message: mensaje,
         type: "warning",
       });
-      return;
+      return null;
     }
 
     if (!form.camaId) {
@@ -304,7 +321,7 @@ export default function AdmitirPacienteHospitalizacion() {
         message: mensaje,
         type: "warning",
       });
-      return;
+      return null;
     }
 
     const dniLimpio = limpiarDni(form.dni || pacienteOriginal.dni);
@@ -316,7 +333,7 @@ export default function AdmitirPacienteHospitalizacion() {
         message: mensaje,
         type: "error",
       });
-      return;
+      return null;
     }
 
     if (!form.nombre.trim() || !form.apellido.trim()) {
@@ -327,7 +344,7 @@ export default function AdmitirPacienteHospitalizacion() {
         message: mensaje,
         type: "warning",
       });
-      return;
+      return null;
     }
 
     const edadNumero = form.edad === "" ? null : Number(form.edad);
@@ -339,21 +356,52 @@ export default function AdmitirPacienteHospitalizacion() {
         message: mensaje,
         type: "error",
       });
+      return null;
+    }
+
+    return dniLimpio;
+  };
+
+  const solicitarConfirmacionGuardarYAdmitir = (e) => {
+    e.preventDefault();
+
+    const dniLimpio = validarFormularioAntesDeConfirmar();
+    if (!dniLimpio) return;
+
+    setDniValidadoParaAdmitir(dniLimpio);
+    setConfirmOpen(true);
+  };
+
+  const cerrarConfirmDialog = () => {
+    if (loadingGuardarYAdmitir) return;
+    setConfirmOpen(false);
+  };
+
+  const confirmarGuardarYAdmitir = async () => {
+    const dniLimpio =
+      dniValidadoParaAdmitir || validarFormularioAntesDeConfirmar();
+
+    if (!dniLimpio) {
+      setConfirmOpen(false);
       return;
     }
 
     setLoadingGuardarYAdmitir(true);
+
     try {
       const payloadPaciente = {
         nombre: form.nombre.trim(),
         apellido: form.apellido.trim(),
         fechaNacimiento: form.fechaNacimiento || null,
-        edad: form.edad === "" ? null : edadNumero,
+        edad: form.edad === "" ? null : Number(form.edad),
         sexo: form.sexo || null,
         estadoPersona: form.estadoPersona || null,
       };
 
-      const paciente = await actualizarPacientePorDni(dniLimpio, payloadPaciente);
+      const paciente = await actualizarPacientePorDni(
+        dniLimpio,
+        payloadPaciente
+      );
       setPacienteActualizado(paciente);
       cargarPacienteEnFormulario(paciente);
 
@@ -367,8 +415,13 @@ export default function AdmitirPacienteHospitalizacion() {
       const episodio = await crearEpisodio(payloadEpisodio);
       setEpisodioCreado(episodio);
 
-      const mensaje = "Paciente actualizado y admisión de hospitalización generada correctamente.";
+      const mensaje =
+        "Paciente actualizado y admisión de hospitalización generada correctamente.";
       setSuccessMsg(mensaje);
+      setErrorMsg("");
+      setConfirmOpen(false);
+      setDniValidadoParaAdmitir("");
+
       mostrarDialogo({
         title: "Admisión generada",
         message: mensaje,
@@ -378,8 +431,12 @@ export default function AdmitirPacienteHospitalizacion() {
       await cargarCamas();
       setForm((prev) => ({ ...prev, camaId: "" }));
     } catch (err) {
-      const mensaje = parseBackendMessage(err) || "Error al actualizar y admitir al paciente.";
+      const mensaje =
+        parseBackendMessage(err) ||
+        "Error al actualizar y admitir al paciente.";
       setErrorMsg(mensaje);
+      setSuccessMsg("");
+      setConfirmOpen(false);
       mostrarDialogo({
         title: "Error al admitir paciente",
         message: mensaje,
@@ -396,7 +453,9 @@ export default function AdmitirPacienteHospitalizacion() {
         <section className="sis-card sis-section-card">
           <div className="sis-section-header">
             <div>
-              <h3 className="sis-section-title">Buscar paciente para hospitalización</h3>
+              <h3 className="sis-section-title">
+                Buscar paciente para hospitalización
+              </h3>
             </div>
           </div>
 
@@ -437,7 +496,7 @@ export default function AdmitirPacienteHospitalizacion() {
           </div>
 
           <div className="sis-card-body">
-            <form onSubmit={guardarCambiosYAdmitir}>
+            <form onSubmit={solicitarConfirmacionGuardarYAdmitir}>
               <div className="sis-form-grid">
                 <div className="sis-form-group">
                   <label className="sis-form-label">Nombre</label>
@@ -477,7 +536,12 @@ export default function AdmitirPacienteHospitalizacion() {
 
                 <div className="sis-form-group">
                   <label className="sis-form-label">Edad</label>
-                  <input className="sis-form-control" name="edad" value={form.edad} disabled />
+                  <input
+                    className="sis-form-control"
+                    name="edad"
+                    value={form.edad}
+                    disabled
+                  />
                   <small className="sis-text-muted">
                     La edad se calcula automaticamente a partir de la fecha de nacimiento
                   </small>
@@ -539,7 +603,12 @@ export default function AdmitirPacienteHospitalizacion() {
 
                 <div className="sis-form-group">
                   <label className="sis-form-label">DNI</label>
-                  <input className="sis-form-control" name="dniReadonly" value={form.dni} disabled />
+                  <input
+                    className="sis-form-control"
+                    name="dniReadonly"
+                    value={form.dni}
+                    disabled
+                  />
                 </div>
 
                 <div className="sis-form-group">
@@ -567,7 +636,9 @@ export default function AdmitirPacienteHospitalizacion() {
 
                   <div className="sis-detail-item">
                     <span className="sis-detail-label">Última modificación</span>
-                    <div className="sis-detail-value">{pacienteActivo.fechaModificacion || "-"}</div>
+                    <div className="sis-detail-value">
+                      {pacienteActivo.fechaModificacion || "-"}
+                    </div>
                   </div>
                 </div>
               )}
@@ -578,13 +649,26 @@ export default function AdmitirPacienteHospitalizacion() {
                   className="sis-btn sis-btn-primary"
                   disabled={!pacienteOriginal || !puedeAdmitir || disabledGeneral || loadingCamas}
                 >
-                  {loadingGuardarYAdmitir ? "Guardando y admitiendo..." : "Guardar cambios y admitir"}
+                  {loadingGuardarYAdmitir
+                    ? "Guardando y admitiendo..."
+                    : "Guardar cambios y admitir"}
                 </button>
               </div>
             </form>
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirmar admisión"
+        message="¿Estás seguro de que querés guardar los cambios del paciente y generar la admisión en hospitalización con la cama seleccionada?"
+        onConfirm={confirmarGuardarYAdmitir}
+        onCancel={cerrarConfirmDialog}
+        confirmText="Sí, guardar y admitir"
+        cancelText="Cancelar"
+        loading={loadingGuardarYAdmitir}
+      />
 
       <AlertDialog
         open={dialog.open}
@@ -596,4 +680,4 @@ export default function AdmitirPacienteHospitalizacion() {
       />
     </>
   );
-};
+}
